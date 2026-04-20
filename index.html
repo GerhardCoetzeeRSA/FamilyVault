@@ -148,6 +148,7 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 .badge-navy2{background:var(--navy2);}
 .badge-gray{background:#5D6D7E;}
 .badge-purple{background:var(--purple);}
+.badge-amber{background:#B7770D;}
 .vault-email{font-size:13px;color:var(--light);}
 
 /* PROGRESS SUMMARY */
@@ -260,7 +261,70 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 .alert{border-radius:7px;padding:10px 14px;font-size:13px;margin-bottom:14px;}
 .alert-danger{background:#FDEDEC;border:1px solid #F1948A;color:#922B21;}
 
-@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}</style>
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+/* ══════════════════════════════════════════════════
+   MOBILE & TABLET RESPONSIVE
+══════════════════════════════════════════════════ */
+
+/* Hamburger hidden on desktop */
+.hamburger-btn { display: none; }
+
+/* Sidebar overlay — hidden by default */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 199;
+}
+
+/* Tablet (769px – 1024px) */
+@media (max-width: 1024px) {
+  .hamburger-btn { display: flex !important; }
+  .nav-family { display: none; }
+  aside {
+    position: fixed !important;
+    top: 65px; left: 0; bottom: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+  }
+  aside.open { transform: translateX(0) !important; }
+  .sidebar-overlay.open { display: block !important; }
+  main { padding: 24px 20px !important; }
+}
+
+/* Mobile (≤ 768px) */
+@media (max-width: 768px) {
+  .nav-user { display: none; }
+  .demo-badge { display: none; }
+  aside { width: 82vw !important; max-width: 300px; }
+  main { padding: 16px 12px !important; }
+
+  /* Vault header stacks */
+  .vault-header { flex-direction: column !important; }
+  .progress-summary { text-align: left !important; }
+  .progress-bar-wrap { margin-left: 0 !important; }
+
+  /* Grid nav — 2 columns */
+  .grid-nav-cards { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Doc slot buttons stack */
+  .slot-actions { flex-wrap: wrap; }
+
+  /* Login card padding */
+  .login-card { padding: 24px 20px !important; margin: 0 12px; }
+  .login-logo h1 { font-size: 30px !important; }
+}
+
+/* Small phones (≤ 400px) */
+@media (max-width: 400px) {
+  .grid-nav-cards { grid-template-columns: 1fr 1fr !important; }
+  nav { padding: 0 14px !important; }
+  .nav-brand { font-size: 18px !important; }
+  main { padding: 12px 10px !important; }
+}
+</style>
 </head>
 <body>
 
@@ -296,6 +360,7 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 <div id="app">
   <nav>
     <div class="nav-left">
+      <button class="hamburger-btn" onclick="toggleSidebar()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:0 6px 0 0;display:none;align-items:center;">☰</button>
       <span style="font-size:22px;">🏛️</span>
       <span class="nav-brand">EstateVault</span>
       <span class="nav-family">· Van der Berg Family</span>
@@ -309,7 +374,8 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
   <div class="gold-bar"></div>
 
   <div class="app-body">
-    <aside>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+    <aside id="main-sidebar">
       <div class="sidebar-label">Family Members</div>
       <div id="member-list"></div>
       <div class="sidebar-footer" id="sidebar-footer"></div>
@@ -337,6 +403,7 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
         <select id="m-role">
           <option>Spouse</option>
           <option>Child</option>
+          <option>Dependant</option>
           <option>Executor</option>
           <option>Other</option>
         </select>
@@ -421,10 +488,15 @@ const SECTIONS = [
     {key:'biz_insurance',label:'Business Insurance Policies'},
   ]},
   { key:'children', icon:'👨‍👩‍👧', label:'Children', cats:[
-    {key:'child_accounts',label:"Children's Bank Accounts"},
-    {key:'child_school',label:"Children's School Details, Fees & Payment Arrangements"},
-    {key:'child_activities',label:"Children's Extramural Activities"},
-    {key:'child_invest',label:"Children's Study Policy / Investment"},
+    {key:'child_id_birth',label:'ID / Birth Certificate'},
+    {key:'child_guardian',label:'Guardian Information'},
+    {key:'child_school_report',label:'School Report'},
+    {key:'child_extramural',label:'Extramural Information'},
+    {key:'child_extra_class',label:'Extra Class / Coaching'},
+    {key:'child_special_needs',label:'Special Needs & Considerations'},
+    {key:'child_study_invest',label:'Study Plan / Investment'},
+    {key:'child_bank',label:'Bank Account'},
+    {key:'child_stepparent',label:'Step-parent Details'},
   ]},
   { key:'employment', icon:'🎓', label:'Employment & Education', cats:[
     {key:'emp_contract',label:'Employment Contract'},
@@ -489,13 +561,21 @@ const PIETER_DOCS = {
 let MEMBERS = [
   {id:'hoh', name:'Pieter van der Berg', role:'Head of Household', email:'pieter@vandenberg.co.za', badge:'badge-navy', docs: JSON.parse(JSON.stringify(PIETER_DOCS))},
   {id:'executor', name:'Adv. S. Engelbrecht', role:'Executor', email:'s.engelbrecht@lawchambers.co.za', badge:'badge-purple', docs: {}},
+  {id:'dependant', name:'Mev. A. van der Berg', role:'Dependant', email:'alma@vandenberg.co.za', badge:'badge-amber', docs: {
+    id_card:       [{id:'dep1',name:'Alma_ID_SmartCard.pdf',size:408000,icon:'📕'}],
+    birth_cert:    [{id:'dep2',name:'Alma_Geboorte_Sertifikaat.pdf',size:290000,icon:'📕'}],
+    med_aid:       [{id:'dep3',name:'Discovery_MedAid_Alma_2024.pdf',size:365000,icon:'📕'}],
+    med_history:   [{id:'dep4',name:'Alma_Mediese_Geskiedenis.pdf',size:310000,icon:'📕'}],
+    chronic:       [{id:'dep5',name:'Alma_Kroniese_Medikasie.pdf',size:185000,icon:'📕'}],
+    life_ins:      [{id:'dep6',name:'Alma_Lewenspolis.pdf',size:890000,icon:'📕'}],
+    bank_account:  [{id:'dep7',name:'Alma_Bankbesonderhede.pdf',size:95000,icon:'📕'}],
+  }},
   {id:'child', name:'Lana van der Berg', role:'Child', email:'lana@vandenberg.co.za', badge:'badge-gray', docs: {
-    id_card:         [{id:'l1',name:'Lana_ID_SmartCard.pdf',size:410000,icon:'📕'}],
-    birth_cert:      [{id:'l2',name:'Geboorte_Sertifikaat_Lana.pdf',size:298000,icon:'📕'}],
-    child_accounts:  [{id:'l3',name:'Lana_Spaarrekening_FNB.pdf',size:110000,icon:'📕'}],
-    child_school:    [{id:'l4',name:'Lana_Skoolfooie_Ooreenkoms_2025.pdf',size:195000,icon:'📕'}],
-    child_activities:[{id:'l5',name:'Lana_Buite_Muurse_Aktiwiteite_2025.pdf',size:145000,icon:'📕'}],
-    child_invest:    [{id:'l6',name:'Lana_Studiepolis_OldMutual.pdf',size:380000,icon:'📕'}],
+    child_id_birth:      [{id:'l1',name:'Lana_ID_SmartCard.pdf',size:410000,icon:'📕'},{id:'l2',name:'Geboorte_Sertifikaat_Lana.pdf',size:298000,icon:'📕'}],
+    child_school_report: [{id:'l3',name:'Lana_Skoolrapport_2024.pdf',size:195000,icon:'📕'}],
+    child_extramural:    [{id:'l4',name:'Lana_Buite_Muurse_Aktiwiteite_2025.pdf',size:145000,icon:'📕'}],
+    child_study_invest:  [{id:'l5',name:'Lana_Studiepolis_OldMutual.pdf',size:380000,icon:'📕'}],
+    child_bank:          [{id:'l6',name:'Lana_Spaarrekening_FNB.pdf',size:110000,icon:'📕'}],
   }},
 ];
 
@@ -540,7 +620,7 @@ function renderSidebar(){
     btn.innerHTML = `
       <span class="m-name">${m.name}${isMe ? ' <span style="font-size:10px;opacity:0.5">(me)</span>' : ''}</span>
       <span class="m-role">${m.role}</span>`;
-    btn.onclick = () => { activeMemberId = m.id; searchQuery=''; renderSidebar(); renderVault(); };
+    btn.onclick = () => { activeMemberId = m.id; searchQuery=''; renderSidebar(); renderVault(); closeSidebar(); };
     list.appendChild(btn);
   });
 
@@ -777,7 +857,7 @@ function submitAddMember(){
   const err   = document.getElementById('modal-error');
   if(!name||!email||!pass){ err.style.display='block';err.textContent='All fields are required.';return; }
   if(pass.length<6){ err.style.display='block';err.textContent='Password must be at least 6 characters.';return; }
-  const badges={'Spouse':'badge-navy2','Child':'badge-gray','Executor':'badge-purple','Other':'badge-gray'};
+  const badges={'Spouse':'badge-navy2','Child':'badge-gray','Dependant':'badge-amber','Executor':'badge-purple','Other':'badge-gray'};
   MEMBERS.push({id:'m'+Date.now(),name,role,email,badge:badges[role]||'badge-gray',docs:{}});
   closeModal();
   renderSidebar();
@@ -816,6 +896,22 @@ function showToast(msg){
 document.getElementById('add-modal').addEventListener('click',function(e){
   if(e.target===this) closeModal();
 });
+
+// ── Sidebar toggle (mobile/tablet) ───────────────────────────
+function toggleSidebar(){
+  const sidebar = document.getElementById('main-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen  = sidebar.classList.contains('open');
+  if(isOpen){ closeSidebar(); } else { openSidebar(); }
+}
+function openSidebar(){
+  document.getElementById('main-sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar(){
+  document.getElementById('main-sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
 </script>
 </body>
 </html>
