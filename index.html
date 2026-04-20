@@ -511,6 +511,9 @@ const SECTIONS = [
     {key:'chronic',label:'Chronic Medication List'},
     {key:'disability',label:'Disability Documentation'},
   ]},
+  { key:'other', icon:'📂', label:'Other Documents', cats:[
+    {key:'other_docs',label:'Other Documents'},
+  ]},
 ];
 
 const ALL_CATS = SECTIONS.flatMap(s => s.cats);
@@ -596,6 +599,9 @@ function doLogin(){
   document.getElementById('nav-username').textContent = currentUser.name;
   renderSidebar();
   renderVault();
+  // Start at top
+  const mainEl = document.getElementById('vault-main');
+  if(mainEl) mainEl.closest('main').scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function doLogout(){
@@ -620,7 +626,37 @@ function renderSidebar(){
     btn.innerHTML = `
       <span class="m-name">${m.name}${isMe ? ' <span style="font-size:10px;opacity:0.5">(me)</span>' : ''}</span>
       <span class="m-role">${m.role}</span>`;
-    btn.onclick = () => { activeMemberId = m.id; searchQuery=''; renderSidebar(); renderVault(); closeSidebar(); };
+    btn.onclick = () => {
+      activeMemberId = m.id;
+      searchQuery = '';
+      renderSidebar();
+      renderVault();
+      closeSidebar();
+      // Scroll active sidebar button into view
+      setTimeout(() => {
+        const activeBtn = document.querySelector('.member-btn.active');
+        if(activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+      // Scroll main to role-specific section
+      const roleSectionMap = {
+        'Head of Household': null,
+        'Spouse':            null,
+        'Child':             'sec-children',
+        'Dependant':         null,
+        'Executor':          null,
+        'Other':             null,
+      };
+      const targetSec = roleSectionMap[m.role];
+      setTimeout(() => {
+        if(targetSec) {
+          const secEl = document.getElementById(targetSec);
+          if(secEl) secEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          const mainEl = document.getElementById('vault-main');
+          if(mainEl) mainEl.closest('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 80);
+    };
     list.appendChild(btn);
   });
 
@@ -667,14 +703,29 @@ function renderVault(){
 
   const q = searchQuery.trim().toLowerCase();
 
-  const filteredSections = SECTIONS.map(s=>({
-    ...s,
-    cats: s.cats.filter(c=>{
-      if(!q) return true;
-      if(c.label.toLowerCase().includes(q)) return true;
-      return (docs[c.key]||[]).some(f=>f.name.toLowerCase().includes(q));
+  const CHILD_EXCLUDED_SECTIONS     = ['identity','financial','property','legal','business'];
+  const DEPENDANT_EXCLUDED_SECTIONS = ['children'];
+  const DEPENDANT_ONLY_SECTIONS     = ['other'];
+  const CHILD_EXCLUDED_CATS         = ['domestic'];
+  const DEPENDANT_EXCLUDED_CATS     = ['domestic'];
+
+  const filteredSections = SECTIONS
+    .filter(s => {
+      if(member.role === 'Child'     && CHILD_EXCLUDED_SECTIONS.includes(s.key)) return false;
+      if(member.role === 'Dependant' && DEPENDANT_EXCLUDED_SECTIONS.includes(s.key)) return false;
+      if(DEPENDANT_ONLY_SECTIONS.includes(s.key) && member.role !== 'Dependant') return false;
+      return true;
     })
-  })).filter(s=>s.cats.length>0);
+    .map(s=>({
+      ...s,
+      cats: s.cats.filter(c=>{
+        if(member.role === 'Child'     && CHILD_EXCLUDED_CATS.includes(c.key)) return false;
+        if(member.role === 'Dependant' && DEPENDANT_EXCLUDED_CATS.includes(c.key)) return false;
+        if(!q) return true;
+        if(c.label.toLowerCase().includes(q)) return true;
+        return (docs[c.key]||[]).some(f=>f.name.toLowerCase().includes(q));
+      })
+    })).filter(s=>s.cats.length>0);
 
   let html = `
     <div class="vault-header">
