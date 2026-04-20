@@ -324,6 +324,26 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
   .nav-brand { font-size: 18px !important; }
   main { padding: 12px 10px !important; }
 }
+
+/* Notes slot styling */
+.notes-slot {
+  background: #F5F2ED !important;
+  border-left-color: #B5A898 !important;
+  border-color: #D5C9BB !important;
+  margin-left: 8px !important;
+  margin-bottom: 12px !important;
+  padding: 7px 14px !important;
+}
+.notes-slot.has-file { border-left-color: #8B7355 !important; }
+.notes-label {
+  font-size: 12px !important;
+  font-style: italic;
+  color: var(--light) !important;
+}
+.notes-label.filled {
+  font-style: normal !important;
+  color: var(--text) !important;
+}
 </style>
 </head>
 <body>
@@ -587,6 +607,8 @@ let currentUser = null;
 let activeMemberId = 'hoh';
 let searchQuery = '';
 let uploadingSlots = {};
+let notesStore = {};      // key: memberId:catKey → { text, open }
+let noteSavingSlots = {}; // key: memberId:catKey → bool
 
 // ══════════════════════════════════════════════════════════
 // AUTH
@@ -787,6 +809,10 @@ function renderVault(){
       const catDocs = docs[c.key]||[];
       const hasDocs = catDocs.length>0;
       const isUploading = uploadingSlots[member.id+':'+c.key];
+      const noteKey = c.key+'_notes';
+      const noteDocs = docs[noteKey]||[];
+      const noteHasDocs = noteDocs.length>0;
+      const noteUploading = uploadingSlots[member.id+':'+noteKey];
       html += `
         <div class="doc-slot ${hasDocs?'has-file':''}" id="slot-${member.id}-${c.key}"
           ondragover="handleDragOver(event,'${member.id}','${c.key}')"
@@ -823,6 +849,67 @@ function renderVault(){
               </div>
               ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${c.key}','${f.id}')">✕</button>`:''}
             </div>`).join('')}
+        </div>`;
+      // ── Notes text area ────────────────────────────────────
+      const nk       = member.id + ':' + c.key;
+      const nd       = notesStore[nk] || { text:'', open:false, saved:'' };
+      const unsaved  = nd.text !== nd.saved;
+      html += `
+        <div style="margin-top:8px;">
+          <button onclick="toggleNote('${member.id}','${c.key}')"
+            style="background:none;border:none;cursor:pointer;font-family:sans-serif;font-size:11px;
+                   font-weight:600;color:${nd.saved ? 'var(--gold)' : 'var(--light)'};text-transform:uppercase;
+                   letter-spacing:0.6px;padding:2px 0;display:flex;align-items:center;gap:5px;">
+            ${nd.open ? '▾' : '▸'} Notes${nd.saved ? ' ✎' : ''}
+          </button>
+          ${nd.open ? `
+            <div style="margin-top:6px;">
+              <textarea id="note-${member.id}-${c.key}" rows="3"
+                ${!write ? 'readonly' : ''}
+                oninput="updateNote('${member.id}','${c.key}',this.value)"
+                placeholder="${write ? 'Add any additional information about this category…' : 'No notes added.'}"
+                style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);
+                       border-radius:5px;font-family:sans-serif;font-size:13px;color:var(--text);
+                       background:${write ? '#FAFAF8' : '#F5F3EF'};resize:vertical;outline:none;line-height:1.5;"
+              >${nd.text}</textarea>
+              ${write ? `
+                <div style="display:flex;justify-content:flex-end;margin-top:5px;gap:8px;align-items:center;">
+                  ${unsaved ? '<span style="font-family:sans-serif;font-size:11px;color:var(--light);font-style:italic;">Unsaved changes</span>' : ''}
+                  ${!unsaved && nd.saved ? '<span style="font-family:sans-serif;font-size:11px;color:var(--success);">✓ Saved</span>' : ''}
+                  <button onclick="saveNote('${member.id}','${c.key}')"
+                    ${!unsaved ? 'disabled' : ''}
+                    style="background:${unsaved ? 'var(--gold)' : 'transparent'};
+                           color:${unsaved ? 'var(--navy)' : 'var(--light)'};
+                           border:1px solid ${unsaved ? 'var(--gold)' : 'var(--border)'};
+                           border-radius:6px;padding:5px 13px;font-size:12px;font-weight:600;
+                           font-family:sans-serif;cursor:${unsaved ? 'pointer' : 'default'};">
+                    Save Note
+                  </button>
+                </div>` : ''}
+              ${noteDocs.length>0 ? `
+                <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+                  <div style="font-family:sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--light);margin-bottom:2px;">Attachments</div>
+                  ${noteDocs.map(f=>`
+                    <div class="file-row">
+                      <div><a class="file-link" href="#" onclick="return false;">${fileIcon(f.name)} ${f.name}</a>
+                      <span class="file-size">${fmtSize(f.size)}</span></div>
+                      ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${noteKey}','${f.id}')">✕</button>`:''}
+                    </div>`).join('')}
+                </div>` : ''}
+              ${write ? `
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                  <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;">
+                    📎 Attach file
+                    <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onchange="handleFileSelect(event,'${member.id}','${noteKey}')"/>
+                  </label>
+                  <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;">
+                    📷 Scan
+                    <input type="file" style="display:none" accept="image/*" capture="environment"
+                      onchange="handleFileSelect(event,'${member.id}','${noteKey}')"/>
+                  </label>
+                </div>` : ''}
+            </div>` : ''}
         </div>`;
     });
     html += `</div>`;
@@ -948,6 +1035,38 @@ function showToast(msg){
 document.getElementById('add-modal').addEventListener('click',function(e){
   if(e.target===this) closeModal();
 });
+
+// ── Notes functions ─────────────────────────────────────────
+function toggleNote(memberId, catKey){
+  const nk = memberId+':'+catKey;
+  if(!notesStore[nk]) notesStore[nk] = {text:'', open:false, saved:''};
+  notesStore[nk].open = !notesStore[nk].open;
+  renderVault();
+}
+
+function updateNote(memberId, catKey, val){
+  const nk = memberId+':'+catKey;
+  if(!notesStore[nk]) notesStore[nk] = {text:'', open:true, saved:''};
+  notesStore[nk].text = val;
+  // Re-render just the save button state without full re-render
+  const unsaved = notesStore[nk].text !== notesStore[nk].saved;
+  const btn = document.querySelector(`[onclick="saveNote('${memberId}','${catKey}')"]`);
+  if(btn){
+    btn.disabled = !unsaved;
+    btn.style.background = unsaved ? 'var(--gold)' : 'transparent';
+    btn.style.color = unsaved ? 'var(--navy)' : 'var(--light)';
+    btn.style.borderColor = unsaved ? 'var(--gold)' : 'var(--border)';
+    btn.style.cursor = unsaved ? 'pointer' : 'default';
+  }
+}
+
+function saveNote(memberId, catKey){
+  const nk = memberId+':'+catKey;
+  if(!notesStore[nk]) return;
+  notesStore[nk].saved = notesStore[nk].text;
+  showToast('✅ Note saved.');
+  renderVault();
+}
 
 // ── Sidebar toggle (mobile/tablet) ───────────────────────────
 function toggleSidebar(){
