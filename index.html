@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>EstateVault — Demo</title>
+<title>FamilyVault — Demo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root {
@@ -352,8 +352,8 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 <div id="login-screen">
   <div class="login-logo">
     <span class="icon">🏛️</span>
-    <h1>EstateVault</h1>
-    <p>Secure family estate document management</p>
+    <h1>FamilyVault</h1>
+    <p>Secure family family estate document management</p>
   </div>
 
   <div class="login-card">
@@ -382,7 +382,7 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
     <div class="nav-left">
       <button class="hamburger-btn" onclick="toggleSidebar()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:0 6px 0 0;display:none;align-items:center;">☰</button>
       <span style="font-size:22px;">🏛️</span>
-      <span class="nav-brand">EstateVault</span>
+      <span class="nav-brand">FamilyVault</span>
       <span class="nav-family">· Van der Berg Family</span>
       <span class="demo-badge">Demo</span>
     </div>
@@ -518,8 +518,10 @@ const SECTIONS = [
     {key:'child_bank',label:'Bank Account'},
     {key:'child_stepparent',label:'Step-parent Details'},
     {key:'child_logins',label:'Logins & Passwords'},
+    {key:'child_tertiary',label:'University / College Progress Reports'},
+    {key:'child_recurring',label:'Recurring Expenses'},
   ]},
-  { key:'employment', icon:'🎓', label:'Employment & Education', cats:[
+  { key:'education', icon:'🎓', label:'Education', cats:[
     {key:'emp_contract',label:'Employment Contract'},
     {key:'payslips',label:'Payslips'},
     {key:'qualifications',label:'Qualifications / Degrees'},
@@ -532,8 +534,22 @@ const SECTIONS = [
     {key:'chronic',label:'Chronic Medication List'},
     {key:'disability',label:'Disability Documentation'},
   ]},
+  { key:'shareholding', icon:'📈', label:'Shareholding', cats:[
+    {key:'share_certs',label:'Share Certificates'},
+    {key:'beneficial_ownership',label:'Beneficial Ownership Register'},
+    {key:'shareholder_agreement',label:'Shareholder Agreement'},
+    {key:'dividend_statements',label:'Dividend Statements'},
+    {key:'share_other',label:'Other Shareholding Documents'},
+  ]},
   { key:'other', icon:'📂', label:'Other Documents', cats:[
     {key:'other_docs',label:'Other Documents'},
+  ]},
+  { key:'dep_recurring', icon:'🔄', label:'Dependant Recurring Accounts', cats:[
+    {key:'dep_store',label:'Store Accounts'},
+    {key:'dep_medical_ins',label:'Medical Insurance'},
+    {key:'dep_short_ins',label:'Short-Term Insurance'},
+    {key:'dep_rent',label:'Rent / Accommodation'},
+    {key:'dep_other',label:'Other Recurring Accounts'},
   ]},
 ];
 
@@ -579,6 +595,9 @@ const PIETER_DOCS = {
   matric:         [{id:'d19',name:'NSC_Sertifikaat_1998.pdf',size:650000,icon:'📕'}],
   domestic:       [{id:'d19b',name:'Huis_Werker_Maria_Kontrak.pdf',size:210000,icon:'📕'},{id:'d19c',name:'Maria_ID_Kopie.pdf',size:180000,icon:'📕'},{id:'d19d',name:'UIF_Registrasie.pdf',size:95000,icon:'📕'}],
   med_history:    [{id:'d20',name:'Mediese_Opsomming_DrOosthuizen.pdf',size:320000,icon:'📕'}],
+  share_certs:    [{id:'d21',name:'VdBerg_Konstruksie_Aandele_Sertifikaat.pdf',size:540000,icon:'📕'}],
+  beneficial_ownership: [{id:'d22',name:'Beneficial_Ownership_Register_2024.pdf',size:310000,icon:'📕'}],
+  shareholder_agreement: [{id:'d23',name:'Aandeelhouers_Ooreenkoms.pdf',size:720000,icon:'📕'}],
 };
 
 // Members
@@ -726,17 +745,20 @@ function renderVault(){
 
   const q = searchQuery.trim().toLowerCase();
 
-  const CHILD_EXCLUDED_SECTIONS     = ['identity','financial','property','legal','business'];
-  const DEPENDANT_EXCLUDED_SECTIONS = ['children'];
-  const DEPENDANT_ONLY_SECTIONS     = ['other'];
-  const CHILD_EXCLUDED_CATS         = ['domestic'];
-  const DEPENDANT_EXCLUDED_CATS     = ['domestic'];
+  const CHILD_EXCLUDED_SECTIONS     = ['identity','financial','property','legal','business','shareholding','dep_recurring'];
+  const DEPENDANT_EXCLUDED_SECTIONS = ['children','property','business','education','shareholding'];
+  const DEPENDANT_ONLY_SECTIONS     = ['other','dep_recurring'];
+  const OWNER_ONLY_SECTIONS         = ['shareholding'];
+  const CHILD_EXCLUDED_CATS         = ['domestic','emp_contract','payslips'];
+  const DEPENDANT_EXCLUDED_CATS     = ['domestic','credit_report','vat','suretyship','loan_agree','bank_account','recurring'];
+  const isOwnerRole = ['Head of Household','Spouse'].includes(member.role);
 
   const filteredSections = SECTIONS
     .filter(s => {
       if(member.role === 'Child'     && CHILD_EXCLUDED_SECTIONS.includes(s.key)) return false;
       if(member.role === 'Dependant' && DEPENDANT_EXCLUDED_SECTIONS.includes(s.key)) return false;
       if(DEPENDANT_ONLY_SECTIONS.includes(s.key) && member.role !== 'Dependant') return false;
+      if(OWNER_ONLY_SECTIONS.includes(s.key) && !isOwnerRole) return false;
       return true;
     })
     .map(s=>({
@@ -779,13 +801,20 @@ function renderVault(){
 
   // Grid nav (hidden when searching)
   if(!q){
+    const CHILD_NAV_KEYS = ['identity','children','medical','other'];
     html += `<div class="grid-nav"><div class="grid-nav-label">Jump to section</div><div class="grid-nav-cards">`;
-    SECTIONS.forEach(s=>{
+    SECTIONS.filter(s=>{
+      if(member.role==='Child') return CHILD_NAV_KEYS.includes(s.key);
+      if(member.role==='Dependant' && DEPENDANT_EXCLUDED_SECTIONS.includes(s.key)) return false;
+      if(DEPENDANT_ONLY_SECTIONS.includes(s.key) && member.role!=='Dependant') return false;
+      if(OWNER_ONLY_SECTIONS.includes(s.key) && !isOwnerRole) return false;
+      return true;
+    }).forEach(s=>{
       const sf = s.cats.filter(c=>(docs[c.key]||[]).length>0).length;
       const sp = Math.round((sf/s.cats.length)*100);
       html += `
         <button class="grid-card ${sf>0?'has-docs':''}" onclick="document.getElementById('sec-${s.key}').scrollIntoView({behavior:'smooth',block:'start'})">
-          <div class="grid-card-title">${s.icon} ${s.label}</div>
+          <div class="grid-card-title">${s.icon} ${(member.role==='Child'&&s.label==='Employment & Education')?'Education':s.label}</div>
           <div class="grid-mini-bar"><div class="grid-mini-fill" style="width:${sp}%"></div></div>
           <div class="grid-card-count">${sf}/${s.cats.length} filled</div>
         </button>`;
