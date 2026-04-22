@@ -802,6 +802,10 @@ function renderVault(){
   // Grid nav (hidden when searching)
   if(!q){
     const CHILD_NAV_KEYS = ['identity','children','medical','other'];
+    // Count family members by role for special cards
+    const childMembers     = MEMBERS.filter(m=>m.role==='Child');
+    const dependantMembers = MEMBERS.filter(m=>m.role==='Dependant');
+
     html += `<div class="grid-nav"><div class="grid-nav-label">Jump to section</div><div class="grid-nav-cards">`;
     SECTIONS.filter(s=>{
       if(member.role==='Child') return CHILD_NAV_KEYS.includes(s.key);
@@ -812,13 +816,49 @@ function renderVault(){
     }).forEach(s=>{
       const sf = s.cats.filter(c=>(docs[c.key]||[]).length>0).length;
       const sp = Math.round((sf/s.cats.length)*100);
+
+      // Special display for Children card on HoH/Spouse — show member count, not doc count
+      if(s.key==='children' && isOwnerRole){
+        const cCount = childMembers.length;
+        const hasChildren = cCount > 0;
+        const firstChildId = hasChildren ? childMembers[0].id : '';
+        html += `
+          <button class="grid-card ${hasChildren?'has-docs':''}"
+            onclick="${hasChildren ? `goToMemberSection('${firstChildId}','sec-children')` : ''}">
+            <div class="grid-card-title">👨‍👩‍👧 Children</div>
+            <div class="grid-mini-bar"><div class="grid-mini-fill" style="width:${hasChildren?100:0}%"></div></div>
+            <div class="grid-card-count">${cCount} child${cCount!==1?'ren':''} registered</div>
+          </button>`;
+        return;
+      }
+
+      // Special display for Dependant card on HoH/Spouse — show member count
+      if(s.key==='dep_recurring' && isOwnerRole){
+        return; // skip — handled by the special Dependant card below
+      }
+
       html += `
         <button class="grid-card ${sf>0?'has-docs':''}" onclick="document.getElementById('sec-${s.key}').scrollIntoView({behavior:'smooth',block:'start'})">
-          <div class="grid-card-title">${s.icon} ${(member.role==='Child'&&s.label==='Employment & Education')?'Education':s.label}</div>
+          <div class="grid-card-title">${s.icon} ${s.label}</div>
           <div class="grid-mini-bar"><div class="grid-mini-fill" style="width:${sp}%"></div></div>
           <div class="grid-card-count">${sf}/${s.cats.length} filled</div>
         </button>`;
     });
+
+    // Add Dependant card for HoH/Spouse
+    if(isOwnerRole){
+      const dCount = dependantMembers.length;
+      const hasDep = dCount > 0;
+      const firstDepId = hasDep ? dependantMembers[0].id : '';
+      html += `
+        <button class="grid-card ${hasDep?'has-docs':''}"
+          onclick="${hasDep ? `goToMemberSection('${firstDepId}',null)` : ''}">
+          <div class="grid-card-title">🧓 Dependants</div>
+          <div class="grid-mini-bar"><div class="grid-mini-fill" style="width:${hasDep?100:0}%"></div></div>
+          <div class="grid-card-count">${dCount} dependant${dCount!==1?'s':''} registered</div>
+        </button>`;
+    }
+
     html += `</div></div>`;
   }
 
@@ -1095,6 +1135,26 @@ function saveNote(memberId, catKey){
   notesStore[nk].saved = notesStore[nk].text;
   showToast('✅ Note saved.');
   renderVault();
+}
+
+// ── Member section navigation (from grid cards) ─────────────
+function goToMemberSection(memberId, sectionId){
+  activeMemberId = memberId;
+  renderSidebar();
+  renderVault();
+  closeSidebar();
+  setTimeout(()=>{
+    if(sectionId){
+      const el = document.getElementById(sectionId);
+      if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+    } else {
+      const mainEl = document.getElementById('vault-main');
+      if(mainEl) mainEl.closest('main').scrollTo({top:0,behavior:'smooth'});
+    }
+    // Scroll sidebar to show active member
+    const activeBtn = document.querySelector('.member-btn.active');
+    if(activeBtn) activeBtn.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }, 80);
 }
 
 // ── Sidebar toggle (mobile/tablet) ───────────────────────────
