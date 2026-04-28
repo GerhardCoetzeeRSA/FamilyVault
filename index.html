@@ -153,6 +153,14 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 
 /* PROGRESS SUMMARY */
 .progress-summary{text-align:right;font-size:13px;color:var(--mid);line-height:1.7;}
+.global-add-cat-btn{
+  margin-top:8px;background:none;border:1.5px solid var(--gold);
+  border-radius:6px;padding:5px 12px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
+  color:var(--navy);display:inline-flex;align-items:center;gap:5px;
+  transition:background 0.15s,color 0.15s;
+}
+.global-add-cat-btn:hover{background:var(--gold);color:var(--navy);}
 .progress-bar-wrap{height:6px;width:150px;background:var(--border);border-radius:3px;overflow:hidden;margin-left:auto;margin-top:6px;}
 .progress-bar-fill{height:100%;background:var(--gold);border-radius:3px;transition:width 0.5s;}
 
@@ -168,27 +176,35 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 .search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--light);}
 
 /* GRID NAV */
-.grid-nav{margin-bottom:28px;}
-.grid-nav-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--light);margin-bottom:10px;}
-.grid-nav-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;}
-.grid-card{
-  background:#FFFEF9;border:1.5px solid var(--border);border-radius:9px;
-  padding:11px 13px;cursor:pointer;text-align:left;transition:box-shadow 0.15s,border-color 0.15s;
-}
-.grid-card:hover{box-shadow:0 3px 12px rgba(0,0,0,0.1);border-color:var(--gold);}
-.grid-card.has-docs{border-color:rgba(201,168,76,0.5);}
-.grid-card-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.grid-mini-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:4px;}
-.grid-mini-fill{height:100%;background:var(--gold);border-radius:2px;}
-.grid-card-count{font-size:11px;color:var(--light);}
 
 /* SECTIONS */
-.section-block{margin-bottom:28px;scroll-margin-top:16px;}
+.section-block{margin-bottom:16px;scroll-margin-top:16px;}
 .section-heading{
   font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
-  color:var(--navy);margin-bottom:12px;padding-bottom:7px;
-  border-bottom:2px solid var(--gold);display:flex;align-items:center;gap:7px;
+  color:var(--navy);padding:10px 14px;
+  background:linear-gradient(90deg,rgba(201,168,76,0.08),transparent);
+  border-left:3px solid var(--gold);border-radius:5px;
+  display:flex;align-items:center;gap:7px;cursor:pointer;
+  user-select:none;transition:background 0.15s;
 }
+.section-heading:hover{background:linear-gradient(90deg,rgba(201,168,76,0.16),transparent);}
+
+.section-heading .sec-chevron{margin-left:auto;font-size:10px;color:var(--light);transition:transform 0.2s;}
+.section-heading .sec-filecount{
+  margin-left:6px;font-size:10px;font-weight:600;color:var(--light);
+  font-style:italic;text-transform:none;letter-spacing:0;
+}
+.section-body{padding-top:10px;}
+.section-body.collapsed{display:none;}
+/* Delete category button on slot */
+.slot-delete-cat{
+  background:none;border:1px solid #DDD;border-radius:5px;cursor:pointer;
+  color:var(--light);font-size:11px;font-weight:600;
+  padding:4px 8px;line-height:1;font-family:'DM Sans',sans-serif;
+  transition:background 0.15s,color 0.15s,border-color 0.15s;flex-shrink:0;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.slot-delete-cat:hover{background:#FDEDEC;color:var(--danger);border-color:#F1948A;}
 
 /* DOC SLOTS */
 .doc-slot{
@@ -307,7 +323,6 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
   .progress-bar-wrap { margin-left: 0 !important; }
 
   /* Grid nav — 2 columns */
-  .grid-nav-cards { grid-template-columns: repeat(2, 1fr) !important; }
 
   /* Doc slot buttons stack */
   .slot-actions { flex-wrap: wrap; }
@@ -319,7 +334,6 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 
 /* Small phones (≤ 400px) */
 @media (max-width: 400px) {
-  .grid-nav-cards { grid-template-columns: 1fr 1fr !important; }
   nav { padding: 0 14px !important; }
   .nav-brand { font-size: 18px !important; }
   main { padding: 12px 10px !important; }
@@ -626,8 +640,13 @@ let currentUser = null;
 let activeMemberId = 'hoh';
 let searchQuery = '';
 let uploadingSlots = {};
-let notesStore = {};      // key: memberId:catKey → { text, open }
-let noteSavingSlots = {}; // key: memberId:catKey → bool
+let notesStore = {};       // key: memberId:catKey → { text, open, saved }
+let noteSavingSlots = {};  // key: memberId:catKey → bool
+let collapsedSections = {}; // key: memberId:sectionKey → bool (false = open)
+let customCategories = {};  // key: memberId:sectionKey → [{key, label}]
+let deletedCategories = {}; // key: memberId → Set of category keys
+let noteTexts = {};         // key: memberId:catKey → saved text
+let noteEditing = {};       // key: memberId:catKey → bool
 
 // ══════════════════════════════════════════════════════════
 // AUTH
@@ -785,6 +804,7 @@ function renderVault(){
         <div><strong style="color:var(--navy)">${files}</strong> file${files!==1?'s':''} stored</div>
         <div><strong style="color:var(--navy)">${filled}</strong> of <strong>${total}</strong> categories filled</div>
         <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        ${write ? '<button class="global-add-cat-btn" onclick="promptAddCategoryGlobal(\'' + member.id + '\')">️ Add category</button>' : ''}
       </div>
     </div>
 
@@ -799,68 +819,6 @@ function renderVault(){
     html += `<div class="readonly-notice">👁️ You are viewing this vault in read-only mode. You can view and download documents but cannot upload or delete.</div>`;
   }
 
-  // Grid nav (hidden when searching)
-  if(!q){
-    const CHILD_NAV_KEYS = ['identity','children','medical','other'];
-    // Count family members by role for special cards
-    const childMembers     = MEMBERS.filter(m=>m.role==='Child');
-    const dependantMembers = MEMBERS.filter(m=>m.role==='Dependant');
-
-    html += `<div class="grid-nav"><div class="grid-nav-label">Jump to section</div><div class="grid-nav-cards">`;
-    SECTIONS.filter(s=>{
-      if(member.role==='Child') return CHILD_NAV_KEYS.includes(s.key);
-      if(member.role==='Dependant' && DEPENDANT_EXCLUDED_SECTIONS.includes(s.key)) return false;
-      if(DEPENDANT_ONLY_SECTIONS.includes(s.key) && member.role!=='Dependant') return false;
-      if(OWNER_ONLY_SECTIONS.includes(s.key) && !isOwnerRole) return false;
-      return true;
-    }).forEach(s=>{
-      const sf = s.cats.filter(c=>(docs[c.key]||[]).length>0).length;
-      const sp = Math.round((sf/s.cats.length)*100);
-
-      // Special display for Children card on HoH/Spouse — show member count, not doc count
-      if(s.key==='children' && isOwnerRole){
-        const cCount = childMembers.length;
-        const hasChildren = cCount > 0;
-        const firstChildId = hasChildren ? childMembers[0].id : '';
-        html += `
-          <button class="grid-card ${hasChildren?'has-docs':''}"
-            onclick="${hasChildren ? `goToMemberSection('${firstChildId}','sec-children')` : ''}">
-            <div class="grid-card-title">👨‍👩‍👧 Children</div>
-            <div class="grid-mini-bar"><div class="grid-mini-fill" style="width:${hasChildren?100:0}%"></div></div>
-            <div class="grid-card-count">${cCount} child${cCount!==1?'ren':''} registered</div>
-          </button>`;
-        return;
-      }
-
-      // Special display for Dependant card on HoH/Spouse — show member count
-      if(s.key==='dep_recurring' && isOwnerRole){
-        return; // skip — handled by the special Dependant card below
-      }
-
-      html += `
-        <button class="grid-card ${sf>0?'has-docs':''}" onclick="document.getElementById('sec-${s.key}').scrollIntoView({behavior:'smooth',block:'start'})">
-          <div class="grid-card-title">${s.icon} ${s.label}</div>
-          <div class="grid-mini-bar"><div class="grid-mini-fill" style="width:${sp}%"></div></div>
-          <div class="grid-card-count">${sf}/${s.cats.length} filled</div>
-        </button>`;
-    });
-
-    // Add Dependant card for HoH/Spouse
-    if(isOwnerRole){
-      const dCount = dependantMembers.length;
-      const hasDep = dCount > 0;
-      const firstDepId = hasDep ? dependantMembers[0].id : '';
-      html += `
-        <button class="grid-card ${hasDep?'has-docs':''}"
-          onclick="${hasDep ? `goToMemberSection('${firstDepId}',null)` : ''}">
-          <div class="grid-card-title">🧓 Dependants</div>
-          <div class="grid-mini-bar"><div class="grid-mini-fill" style="width:${hasDep?100:0}%"></div></div>
-          <div class="grid-card-count">${dCount} dependant${dCount!==1?'s':''} registered</div>
-        </button>`;
-    }
-
-    html += `</div></div>`;
-  }
 
   if(q && filteredSections.length===0){
     html += `<div class="readonly-notice" style="background:#FEF9EE;border-color:var(--gold);color:#7a5c00;">No categories or files match "<strong>${q}</strong>".</div>`;
@@ -871,10 +829,31 @@ function renderVault(){
     html += `<p style="font-size:13px;color:var(--mid);margin-bottom:16px;">Showing ${rCount} result${rCount!==1?'s':''} for "<strong>${q}</strong>"</p>`;
   }
 
-  // Sections
+  // ── Sections (collapsible, with custom + deleted categories) ──
+  const delSet = deletedCategories[member.id] || new Set();
+
   filteredSections.forEach(s=>{
-    html += `<div class="section-block" id="sec-${s.key}"><div class="section-heading">${s.icon} ${s.label}</div>`;
-    s.cats.forEach(c=>{
+    // Merge built-in cats (minus deleted) with custom cats for this member+section
+    const builtIn = s.cats.filter(c => !delSet.has(c.key));
+    const custom  = (customCategories[member.id+':'+s.key] || []);
+    const allCats = [...builtIn, ...custom];
+
+    // Count total files across all cats in this section
+    const secFileCount = allCats.reduce((sum, c) => sum + (docs[c.key]||[]).length, 0);
+    const isCollapsed = collapsedSections[member.id+':'+s.key] !== false; // default collapsed
+
+    html += `<div class="section-block" id="sec-${s.key}">
+      <div class="section-heading" onclick="toggleSection('${member.id}','${s.key}')">
+        <span>${s.icon}</span>
+        <span>${s.label}</span>
+        ${secFileCount > 0 ? `<span class="sec-filecount">${secFileCount} file${secFileCount!==1?'s':''}</span>` : ''}
+        <span class="sec-chevron" id="chev-${member.id}-${s.key}" style="transform:rotate(${isCollapsed?'0deg':'-180deg'})">▼</span>
+      </div>
+      <div class="section-body ${isCollapsed?'collapsed':''}" id="secbody-${member.id}-${s.key}">`;
+
+
+    allCats.forEach(c=>{
+      const isCustom = !!c.custom;
       const catDocs = docs[c.key]||[];
       const hasDocs = catDocs.length>0;
       const isUploading = uploadingSlots[member.id+':'+c.key];
@@ -892,8 +871,8 @@ function renderVault(){
               ${c.label}
               ${hasDocs?`<span class="file-count">${catDocs.length} file${catDocs.length>1?'s':''}</span>`:''}
             </div>
-            ${write?`
-              <div class="slot-actions">
+            <div style="display:flex;align-items:center;gap:4px;">
+              ${write?`
                 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
                   📁 Browse
                   <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
@@ -904,7 +883,10 @@ function renderVault(){
                   <input type="file" style="display:none" accept="image/*" capture="environment"
                     onchange="handleFileSelect(event,'${member.id}','${c.key}')"/>
                 </label>
-              </div>`:''}
+                <button class="slot-delete-cat" title="Delete this category"
+                  onclick="deleteCategory('${member.id}','${s.key}','${c.key}',${isCustom})">🗑️ Delete</button>
+              `:''}
+            </div>
           </div>
           ${!hasDocs&&write&&!isUploading?`<div class="slot-hint">or drag &amp; drop a file here</div>`:''}
           ${isUploading?`
@@ -912,76 +894,68 @@ function renderVault(){
             <div style="font-size:12px;color:var(--mid);margin-top:4px;" id="bar-txt-${member.id}-${c.key}">Uploading…</div>`:''}
           ${catDocs.map(f=>`
             <div class="file-row">
-              <div>
-                <a class="file-link" href="#" onclick="return false;">${fileIcon(f.name)} ${f.name}</a>
-                <span class="file-size">${fmtSize(f.size)}</span>
-              </div>
+              <div><a class="file-link" href="#" onclick="return false;">${fileIcon(f.name)} ${f.name}</a>
+              <span class="file-size">${fmtSize(f.size)}</span></div>
               ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${c.key}','${f.id}')">✕</button>`:''}
             </div>`).join('')}
         </div>`;
-      // ── Notes text area ────────────────────────────────────
-      const nk       = member.id + ':' + c.key;
-      const nd       = notesStore[nk] || { text:'', open:false, saved:'' };
-      const unsaved  = nd.text !== nd.saved;
+
+      // Notes panel
+      const savedNoteText = noteTexts[member.id+':'+c.key] || '';
+      const noteItems = (savedNoteText.trim()?1:0) + noteDocs.length;
       html += `
-        <div style="margin-top:8px;">
-          <button onclick="toggleNote('${member.id}','${c.key}')"
-            style="background:none;border:none;cursor:pointer;font-family:sans-serif;font-size:11px;
-                   font-weight:600;color:${nd.saved ? 'var(--gold)' : 'var(--light)'};text-transform:uppercase;
-                   letter-spacing:0.6px;padding:2px 0;display:flex;align-items:center;gap:5px;">
-            ${nd.open ? '▾' : '▸'} Notes${nd.saved ? ' ✎' : ''}
-          </button>
-          ${nd.open ? `
-            <div style="margin-top:6px;">
-              <textarea id="note-${member.id}-${c.key}" rows="3"
-                ${!write ? 'readonly' : ''}
-                oninput="updateNote('${member.id}','${c.key}',this.value)"
-                placeholder="${write ? 'Add any additional information about this category…' : 'No notes added.'}"
-                style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);
-                       border-radius:5px;font-family:sans-serif;font-size:13px;color:var(--text);
-                       background:${write ? '#FAFAF8' : '#F5F3EF'};resize:vertical;outline:none;line-height:1.5;"
-              >${nd.text}</textarea>
-              ${write ? `
-                <div style="display:flex;justify-content:flex-end;margin-top:5px;gap:8px;align-items:center;">
-                  ${unsaved ? '<span style="font-family:sans-serif;font-size:11px;color:var(--light);font-style:italic;">Unsaved changes</span>' : ''}
-                  ${!unsaved && nd.saved ? '<span style="font-family:sans-serif;font-size:11px;color:var(--success);">✓ Saved</span>' : ''}
-                  <button onclick="saveNote('${member.id}','${c.key}')"
-                    ${!unsaved ? 'disabled' : ''}
-                    style="background:${unsaved ? 'var(--gold)' : 'transparent'};
-                           color:${unsaved ? 'var(--navy)' : 'var(--light)'};
-                           border:1px solid ${unsaved ? 'var(--gold)' : 'var(--border)'};
-                           border-radius:6px;padding:5px 13px;font-size:12px;font-weight:600;
-                           font-family:sans-serif;cursor:${unsaved ? 'pointer' : 'default'};">
-                    Save Note
-                  </button>
-                </div>` : ''}
-              ${noteDocs.length>0 ? `
-                <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
-                  <div style="font-family:sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--light);margin-bottom:2px;">Attachments</div>
-                  ${noteDocs.map(f=>`
-                    <div class="file-row">
-                      <div><a class="file-link" href="#" onclick="return false;">${fileIcon(f.name)} ${f.name}</a>
-                      <span class="file-size">${fmtSize(f.size)}</span></div>
-                      ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${noteKey}','${f.id}')">✕</button>`:''}
-                    </div>`).join('')}
-                </div>` : ''}
-              ${write ? `
-                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                  <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;">
-                    📎 Attach file
-                    <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onchange="handleFileSelect(event,'${member.id}','${noteKey}')"/>
-                  </label>
-                  <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;">
-                    📷 Scan
-                    <input type="file" style="display:none" accept="image/*" capture="environment"
-                      onchange="handleFileSelect(event,'${member.id}','${noteKey}')"/>
-                  </label>
-                </div>` : ''}
-            </div>` : ''}
+        <div class="note-panel" id="note-${member.id}-${c.key}">
+          <div class="note-header" onclick="toggleNotePanel('${member.id}','${c.key}')">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span>📝</span>
+              <span class="note-header-label ${noteItems>0?'has-content':''}">Notes</span>
+              ${noteItems>0?`<span class="file-count" style="background:#FEF3E2;color:#B5935A;border-color:#E8C96D;">${noteItems} item${noteItems!==1?'s':''}</span>`:''}
+            </div>
+            <span class="note-chevron" id="chev-note-${member.id}-${c.key}">▼</span>
+          </div>
+          <div class="note-body" id="notebody-${member.id}-${c.key}" style="display:none;">
+            <div class="note-text-area">
+              ${savedNoteText.trim() && !isNoteEditing(member.id,c.key) ? `
+                <div class="note-saved-text" id="notetext-${member.id}-${c.key}">${escHtml(savedNoteText)}</div>
+                ${write?`<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="editNote('${member.id}','${c.key}')">✏️ Edit</button>
+                  <button class="btn btn-ghost btn-sm" onclick="deleteNoteText('${member.id}','${c.key}')">🗑️</button>
+                </div>`:''}
+              ` : write ? `
+                <textarea id="textarea-${member.id}-${c.key}" class="note-textarea" placeholder="Type your notes here…">${escHtml(savedNoteText)}</textarea>
+                <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="cancelNoteEdit('${member.id}','${c.key}')">Cancel</button>
+                  <button class="btn btn-sm" style="background:var(--navy);color:#fff;" onclick="saveNoteText('${member.id}','${c.key}')">Save Note</button>
+                </div>
+              ` : '<p style="font-size:12px;color:var(--light);font-style:italic;margin:8px 0;">No notes added.</p>'}
+            </div>
+            ${noteDocs.length>0?`
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:8px;">
+                ${noteDocs.map(f=>`
+                  <div class="file-row">
+                    <div><a class="file-link" href="#" onclick="return false;">${fileIcon(f.name)} ${f.name}</a>
+                    <span class="file-size">${fmtSize(f.size)}</span></div>
+                    ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${noteKey}','${f.id}')">✕</button>`:''}
+                  </div>`).join('')}
+              </div>`:''}
+            ${write?`
+              <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;">
+                  📎 Attach file
+                  <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onchange="handleFileSelect(event,'${member.id}','${noteKey}')"/>
+                </label>
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;">
+                  📷 Scan
+                  <input type="file" style="display:none" accept="image/*" capture="environment"
+                    onchange="handleFileSelect(event,'${member.id}','${noteKey}')"/>
+                </label>
+              </div>`:''}
+          </div>
         </div>`;
     });
-    html += `</div>`;
+
+    html += `</div></div>`;
   });
 
   document.getElementById('vault-main').innerHTML = html;
@@ -1105,36 +1079,107 @@ document.getElementById('add-modal').addEventListener('click',function(e){
   if(e.target===this) closeModal();
 });
 
-// ── Notes functions ─────────────────────────────────────────
-function toggleNote(memberId, catKey){
-  const nk = memberId+':'+catKey;
-  if(!notesStore[nk]) notesStore[nk] = {text:'', open:false, saved:''};
-  notesStore[nk].open = !notesStore[nk].open;
+// (note functions consolidated above)
+
+// ── Note helper functions ────────────────────────────────────
+function isNoteEditing(memberId, catKey){ return !!noteEditing[memberId+':'+catKey]; }
+
+function editNote(memberId, catKey){
+  noteEditing[memberId+':'+catKey] = true;
+  renderVault();
+  setTimeout(()=>{ const ta=document.getElementById('textarea-'+memberId+'-'+catKey); if(ta) ta.focus(); },50);
+}
+
+function cancelNoteEdit(memberId, catKey){
+  noteEditing[memberId+':'+catKey] = false;
   renderVault();
 }
 
-function updateNote(memberId, catKey, val){
-  const nk = memberId+':'+catKey;
-  if(!notesStore[nk]) notesStore[nk] = {text:'', open:true, saved:''};
-  notesStore[nk].text = val;
-  // Re-render just the save button state without full re-render
-  const unsaved = notesStore[nk].text !== notesStore[nk].saved;
-  const btn = document.querySelector(`[onclick="saveNote('${memberId}','${catKey}')"]`);
-  if(btn){
-    btn.disabled = !unsaved;
-    btn.style.background = unsaved ? 'var(--gold)' : 'transparent';
-    btn.style.color = unsaved ? 'var(--navy)' : 'var(--light)';
-    btn.style.borderColor = unsaved ? 'var(--gold)' : 'var(--border)';
-    btn.style.cursor = unsaved ? 'pointer' : 'default';
-  }
-}
-
-function saveNote(memberId, catKey){
-  const nk = memberId+':'+catKey;
-  if(!notesStore[nk]) return;
-  notesStore[nk].saved = notesStore[nk].text;
+function saveNoteText(memberId, catKey){
+  const ta = document.getElementById('textarea-'+memberId+'-'+catKey);
+  if(ta){ noteTexts[memberId+':'+catKey] = ta.value; }
+  noteEditing[memberId+':'+catKey] = false;
+  renderVault();
   showToast('✅ Note saved.');
+}
+
+function deleteNoteText(memberId, catKey){
+  if(!confirm('Delete this note?')) return;
+  noteTexts[memberId+':'+catKey] = '';
+  noteEditing[memberId+':'+catKey] = false;
   renderVault();
+  showToast('🗑️ Note deleted.');
+}
+
+function escHtml(str){
+  if(!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Section collapse/expand ──────────────────────────────────
+function toggleSection(memberId, sectionKey){
+  const k = memberId+':'+sectionKey;
+  // default is collapsed (true), so first click opens it
+  collapsedSections[k] = collapsedSections[k] === false ? true : false;
+  const body  = document.getElementById('secbody-'+memberId+'-'+sectionKey);
+  const chev  = document.getElementById('chev-'+memberId+'-'+sectionKey);
+  if(body) body.classList.toggle('collapsed', collapsedSections[k] !== false);
+  if(chev) chev.style.transform = collapsedSections[k] !== false ? 'rotate(0deg)' : 'rotate(-180deg)';
+}
+
+// ── Delete a category ─────────────────────────────────────────
+function deleteCategory(memberId, sectionKey, catKey, isCustom){
+  if(!confirm('Remove this category? Any uploaded files will remain in storage but the category will no longer appear.')) return;
+  if(isCustom){
+    // Remove from custom categories
+    const k = memberId+':'+sectionKey;
+    customCategories[k] = (customCategories[k]||[]).filter(c=>c.key!==catKey);
+  } else {
+    // Add to deleted set for this member
+    if(!deletedCategories[memberId]) deletedCategories[memberId] = new Set();
+    deletedCategories[memberId].add(catKey);
+  }
+  renderVault();
+  showToast('🗑️ Category removed.');
+}
+
+// ── Add a custom category ─────────────────────────────────────
+function promptAddCategoryGlobal(memberId){
+  // Build list of visible sections for this member
+  const member = getActiveMember();
+  const visibleSections = SECTIONS.filter(s=>{
+    if(member.role==='Child' && ['identity','financial','property','legal','business','shareholding','dep_recurring'].includes(s.key)) return false;
+    if(member.role==='Dependant' && ['children','property','business','education','shareholding'].includes(s.key)) return false;
+    if(['other','dep_recurring'].includes(s.key) && member.role!=='Dependant') return false;
+    if(s.key==='shareholding' && !['Head of Household','Spouse'].includes(member.role)) return false;
+    return true;
+  });
+
+  // Build a numbered list for the prompt
+  const sectionList = visibleSections.map(function(s,i){ return (i+1)+'. '+s.label; }).join('\n');
+  const choice = prompt('Which section do you want to add a category to?\n\n'+sectionList+'\n\nEnter the number:');
+  if(!choice) return;
+  const idx = parseInt(choice) - 1;
+  if(isNaN(idx) || idx < 0 || idx >= visibleSections.length){
+    alert('Invalid selection. Please enter a number from the list.');
+    return;
+  }
+  const sectionKey = visibleSections[idx].key;
+  const label = prompt('Enter a name for the new category in "'+visibleSections[idx].label+'":');
+  if(!label || !label.trim()) return;
+  promptAddCategory(memberId, sectionKey, label.trim());
+}
+
+function promptAddCategory(memberId, sectionKey, existingLabel){
+  const label = existingLabel || prompt('Enter a name for the new category:');
+  if(!label || !label.trim()) return;
+  const key = 'custom_' + Date.now();
+  const k = memberId+':'+sectionKey;
+  if(!customCategories[k]) customCategories[k] = [];
+  customCategories[k].push({ key, label: label.trim(), custom: true });
+  collapsedSections[memberId+':'+sectionKey] = false; // false = open
+  renderVault();
+  showToast('✅ Category "'+label.trim()+'" added.');
 }
 
 // ── Member section navigation (from grid cards) ─────────────
@@ -1155,6 +1200,16 @@ function goToMemberSection(memberId, sectionId){
     const activeBtn = document.querySelector('.member-btn.active');
     if(activeBtn) activeBtn.scrollIntoView({behavior:'smooth',block:'nearest'});
   }, 80);
+}
+
+// ── Note panel toggle ────────────────────────────────────────
+function toggleNotePanel(memberId, catKey){
+  const body = document.getElementById('notebody-'+memberId+'-'+catKey);
+  const chev = document.getElementById('chev-note-'+memberId+'-'+catKey);
+  if(!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if(chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(-180deg)';
 }
 
 // ── Sidebar toggle (mobile/tablet) ───────────────────────────
