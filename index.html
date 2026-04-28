@@ -196,6 +196,36 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 }
 .section-body{padding-top:10px;}
 .section-body.collapsed{display:none;}
+/* Sub-sections */
+.sub-section-block{
+  margin:8px 0 8px 12px;
+  border-left:2px solid #D5C9BB;
+}
+.sub-section-heading{
+  display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;
+  padding:7px 12px;background:#F5F2ED;border-radius:0 5px 5px 0;
+  font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1px;color:var(--navy);
+  transition:background 0.15s;
+}
+.sub-section-heading:hover{background:#EDE9E1;}
+.sub-section-heading .sec-chevron{margin-left:auto;}
+/* Add Section button */
+.add-sub-section-btn{
+  display:flex;align-items:center;gap:6px;
+  background:none;border:1.5px dashed #C8B89A;border-radius:6px;
+  padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:12px;color:var(--light);width:100%;
+  margin:4px 0 8px;transition:border-color 0.15s,color 0.15s;
+}
+.add-sub-section-btn:hover{border-color:var(--gold);color:var(--navy);}
+.add-cat-bar-btn{
+  background:none;border:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
+  color:var(--navy);display:flex;align-items:center;gap:6px;padding:3px 0;
+  transition:color 0.15s;
+}
+.add-cat-bar-btn:hover{color:var(--gold);}
 /* Delete category button on slot */
 .slot-delete-cat{
   background:none;border:1px solid #DDD;border-radius:5px;cursor:pointer;
@@ -278,6 +308,25 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
 .alert-danger{background:#FDEDEC;border:1px solid #F1948A;color:#922B21;}
 
 @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Quarterly reminder banner */
+.reminder-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:500;
+  background:linear-gradient(90deg,var(--navy),var(--navy2));
+  color:#fff;padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.2);
+  border-top:3px solid var(--gold);
+}
+.reminder-banner p{margin:0;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;}
+.reminder-banner strong{color:var(--gold);}
+.reminder-dismiss{
+  background:var(--gold);color:var(--navy);border:none;border-radius:6px;
+  padding:8px 16px;font-family:'DM Sans',sans-serif;font-weight:700;
+  font-size:13px;cursor:pointer;flex-shrink:0;white-space:nowrap;
+}
+.reminder-dismiss:hover{opacity:0.88;}
 /* ══════════════════════════════════════════════════
    MOBILE & TABLET RESPONSIVE
 ══════════════════════════════════════════════════ */
@@ -406,6 +455,13 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
     </div>
   </nav>
   <div class="gold-bar"></div>
+
+  <!-- Quarterly reminder banner (shown to HoH only) -->
+  <div class="reminder-banner" id="reminder-banner" style="display:none;">
+    <p>📋 <strong>Quarterly Document Reminder</strong> — It's been more than 3 months since your last upload.
+    Please review your vault and upload any missing or updated documents.</p>
+    <button class="reminder-dismiss" onclick="dismissReminder()">Got it ✓</button>
+  </div>
 
   <div class="app-body">
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -645,12 +701,16 @@ let noteSavingSlots = {};  // key: memberId:catKey → bool
 let collapsedSections = {}; // key: memberId:sectionKey → bool (false = open)
 let customCategories = {};  // key: memberId:sectionKey → [{key, label}]
 let deletedCategories = {}; // key: memberId → Set of category keys
+let customSections = {};    // key: memberId:parentSectionKey → [{key, label, icon, cats:[]}]
 let noteTexts = {};         // key: memberId:catKey → saved text
 let noteEditing = {};       // key: memberId:catKey → bool
 
 // ══════════════════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════════════════
+// Simulated last upload date — 4 months ago (triggers reminder in demo)
+const LAST_UPLOAD_DATE = new Date(Date.now() - (120 * 24 * 60 * 60 * 1000));
+
 function doLogin(){
   const sel = document.getElementById('demo-user-select').value;
   currentUser = MEMBERS.find(m => m.id === sel);
@@ -660,10 +720,22 @@ function doLogin(){
   document.getElementById('nav-username').textContent = currentUser.name;
   renderSidebar();
   renderVault();
-  // Start at top
   const mainEl = document.getElementById('vault-main');
   if(mainEl) mainEl.closest('main').scrollTo({ top: 0, behavior: 'instant' });
+  // Show quarterly reminder for Head of Household if > 90 days since last upload
+  if(currentUser.role === 'Head of Household'){
+    const daysSince = Math.floor((Date.now() - LAST_UPLOAD_DATE.getTime()) / (1000*60*60*24));
+    if(daysSince >= 90){
+      setTimeout(function(){ document.getElementById('reminder-banner').style.display='flex'; }, 800);
+    }
+  }
 }
+
+function dismissReminder(){
+  document.getElementById('reminder-banner').style.display='none';
+  showToast('✅ Reminder dismissed. We\'ll remind you again in 3 months.');
+}
+
 
 function doLogout(){
   currentUser = null;
@@ -816,7 +888,7 @@ function renderVault(){
     </div>`;
 
   if(!write){
-    html += `<div class="readonly-notice">👁️ You are viewing this vault in read-only mode. You can view and download documents but cannot upload or delete.</div>`;
+    html += `<div class="readonly-notice">👁️ You are viewing this vault as <strong>Executor</strong>. You can download documents but cannot upload or delete.</div>`;
   }
 
 
@@ -842,14 +914,18 @@ function renderVault(){
     const secFileCount = allCats.reduce((sum, c) => sum + (docs[c.key]||[]).length, 0);
     const isCollapsed = collapsedSections[member.id+':'+s.key] !== false; // default collapsed
 
-    html += `<div class="section-block" id="sec-${s.key}">
-      <div class="section-heading" onclick="toggleSection('${member.id}','${s.key}')">
-        <span>${s.icon}</span>
-        <span>${s.label}</span>
-        ${secFileCount > 0 ? `<span class="sec-filecount">${secFileCount} file${secFileCount!==1?'s':''}</span>` : ''}
-        <span class="sec-chevron" id="chev-${member.id}-${s.key}" style="transform:rotate(${isCollapsed?'0deg':'-180deg'})">▼</span>
-      </div>
-      <div class="section-body ${isCollapsed?'collapsed':''}" id="secbody-${member.id}-${s.key}">`;
+    var secLabel = s.key === 'children' ? member.name.toUpperCase() : s.label;
+    var fileCountBadge = secFileCount > 0 ? '<span class="sec-filecount">'+secFileCount+' file'+(secFileCount!==1?'s':'')+'</span>' : '';
+    var chevRot = isCollapsed ? '0deg' : '-180deg';
+    var bodyClass = isCollapsed ? 'section-body collapsed' : 'section-body';
+    html += '<div class="section-block" id="sec-'+s.key+'">'
+         +  '<div class="section-heading" onclick="toggleSection(\''+member.id+'\',\''+s.key+'\')">'  
+         +  '<span>'+s.icon+'</span>'
+         +  '<span>'+secLabel+'</span>'
+         +  fileCountBadge
+         +  '<span class="sec-chevron" id="chev-'+member.id+'-'+s.key+'" style="transform:rotate('+chevRot+')">▼</span>'
+         +  '</div>'
+         +  '<div class="'+bodyClass+'" id="secbody-'+member.id+'-'+s.key+'">';
 
 
     allCats.forEach(c=>{
@@ -894,9 +970,17 @@ function renderVault(){
             <div style="font-size:12px;color:var(--mid);margin-top:4px;" id="bar-txt-${member.id}-${c.key}">Uploading…</div>`:''}
           ${catDocs.map(f=>`
             <div class="file-row">
-              <div><a class="file-link" href="#" onclick="return false;">${fileIcon(f.name)} ${f.name}</a>
-              <span class="file-size">${fmtSize(f.size)}</span></div>
-              ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${c.key}','${f.id}')">✕</button>`:''}
+              <div style="flex:1;min-width:0;">
+                <span style="font-family:sans-serif;font-size:13px;font-weight:600;color:var(--navy);word-break:break-all;">${fileIcon(f.name)} ${f.name}</span>
+                <span class="file-size">${fmtSize(f.size)}</span>
+              </div>
+              <div style="display:flex;gap:5px;flex-shrink:0;align-items:center;">
+                <a href="${f.url||'#'}" download="${f.name}" target="_blank"
+                  style="background:var(--navy);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:600;font-family:sans-serif;text-decoration:none;cursor:pointer;">
+                  ⬇ Download
+                </a>
+                ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${c.key}','${f.id}')">✕</button>`:''}
+              </div>
             </div>`).join('')}
         </div>`;
 
@@ -933,9 +1017,17 @@ function renderVault(){
               <div style="display:flex;flex-direction:column;gap:5px;margin-top:8px;">
                 ${noteDocs.map(f=>`
                   <div class="file-row">
-                    <div><a class="file-link" href="#" onclick="return false;">${fileIcon(f.name)} ${f.name}</a>
-                    <span class="file-size">${fmtSize(f.size)}</span></div>
-                    ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${noteKey}','${f.id}')">✕</button>`:''}
+                    <div style="flex:1;min-width:0;">
+                      <span style="font-family:sans-serif;font-size:12px;font-weight:600;color:var(--navy);word-break:break-all;">${fileIcon(f.name)} ${f.name}</span>
+                      <span class="file-size">${fmtSize(f.size)}</span>
+                    </div>
+                    <div style="display:flex;gap:5px;flex-shrink:0;">
+                      <a href="${f.url||'#'}" download="${f.name}" target="_blank"
+                        style="background:var(--navy);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;font-family:sans-serif;text-decoration:none;">
+                        ⬇ Download
+                      </a>
+                      ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${noteKey}','${f.id}')">✕</button>`:''}
+                    </div>
                   </div>`).join('')}
               </div>`:''}
             ${write?`
@@ -954,6 +1046,66 @@ function renderVault(){
           </div>
         </div>`;
     });
+
+    // Custom sub-sections under this section
+    const subSections = customSections[member.id+':'+s.key] || [];
+    subSections.forEach(function(sub){
+      const subCollapsed = collapsedSections[member.id+':'+sub.key] !== false;
+      const subFileCount = (sub.cats||[]).reduce(function(sum,c){ return sum + (docs[c.key]||[]).length; }, 0);
+      html += `<div class="sub-section-block" id="sec-${sub.key}">
+        <div class="sub-section-heading" onclick="toggleSection('${member.id}','${sub.key}')">
+          <span>${sub.icon||'📁'}</span>
+          <span>${sub.label}</span>
+          ${subFileCount > 0 ? `<span class="sec-filecount">${subFileCount} file${subFileCount!==1?'s':''}</span>` : ''}
+          <span class="sec-chevron" id="chev-${member.id}-${sub.key}" style="transform:rotate(${subCollapsed?'0deg':'-180deg'})">▼</span>
+        </div>
+        <div class="section-body ${subCollapsed?'collapsed':''}" id="secbody-${member.id}-${sub.key}">`;
+
+      (sub.cats||[]).forEach(function(c){
+        const catDocs = docs[c.key]||[];
+        const hasDocs = catDocs.length>0;
+        html += `
+          <div class="doc-slot ${hasDocs?'has-file':''}" id="slot-${member.id}-${c.key}"
+            ondragover="handleDragOver(event,'${member.id}','${c.key}')"
+            ondragleave="handleDragLeave(event,'${member.id}','${c.key}')"
+            ondrop="handleDrop(event,'${member.id}','${c.key}')">
+            <div class="slot-row">
+              <div class="slot-label ${hasDocs?'filled':''}">
+                ${c.label}
+                ${hasDocs?`<span class="file-count">${catDocs.length} file${catDocs.length>1?'s':''}</span>`:''}
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;">
+                ${write?`
+                  <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                    📁 Browse
+                    <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onchange="handleFileSelect(event,'${member.id}','${c.key}')"/>
+                  </label>
+                  <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                    📷 Scan
+                    <input type="file" style="display:none" accept="image/*" capture="environment"
+                      onchange="handleFileSelect(event,'${member.id}','${c.key}')"/>
+                  </label>
+                  <button class="slot-delete-cat" onclick="deleteCategory('${member.id}','${sub.key}','${c.key}',true)">🗑️ Delete</button>
+                `:''}
+              </div>
+            </div>
+            ${!hasDocs&&write?`<div class="slot-hint">or drag &amp; drop a file here</div>`:''}
+          </div>`;
+      });
+
+      if(write){
+        html += `<button class="add-cat-bar-btn" style="margin:6px 0 8px 4px;font-style:italic;font-size:12px;color:var(--light);"
+          onclick="promptAddCatToSubSection('${member.id}','${s.key}','${sub.key}')">＋ Add category to this section</button>`;
+      }
+
+      html += `</div></div>`;
+    });
+
+    // "Add section" button at bottom of each section
+    if(write){
+      html += `<button class="add-sub-section-btn" onclick="promptAddSubSection('${member.id}','${s.key}')">＋ Add section</button>`;
+    }
 
     html += `</div></div>`;
   });
@@ -1125,6 +1277,39 @@ function toggleSection(memberId, sectionKey){
   const chev  = document.getElementById('chev-'+memberId+'-'+sectionKey);
   if(body) body.classList.toggle('collapsed', collapsedSections[k] !== false);
   if(chev) chev.style.transform = collapsedSections[k] !== false ? 'rotate(0deg)' : 'rotate(-180deg)';
+}
+
+// ── Add a custom sub-section under a parent section ─────────
+function promptAddSubSection(memberId, parentSectionKey){
+  const parentSection = SECTIONS.find(function(s){ return s.key === parentSectionKey; });
+  const parentLabel = parentSection ? parentSection.label : parentSectionKey;
+  const label = prompt('Enter a name for the new section under "' + parentLabel + '":');
+  if(!label || !label.trim()) return;
+  const key = 'subsec_' + Date.now();
+  const pk = memberId+':'+parentSectionKey;
+  if(!customSections[pk]) customSections[pk] = [];
+  customSections[pk].push({ key: key, label: label.trim(), icon: '📁', cats: [] });
+  // Open parent section and new sub-section
+  collapsedSections[memberId+':'+parentSectionKey] = false;
+  collapsedSections[memberId+':'+key] = false;
+  renderVault();
+  showToast('✅ Section "'+label.trim()+'" added.');
+}
+
+// ── Add a category to a custom sub-section ────────────────────
+function promptAddCatToSubSection(memberId, parentSectionKey, subSectionKey){
+  const pk = memberId+':'+parentSectionKey;
+  const subSections = customSections[pk] || [];
+  const sub = subSections.find(function(s){ return s.key === subSectionKey; });
+  if(!sub) return;
+  const label = prompt('Enter a name for the new category under "'+sub.label+'":');
+  if(!label || !label.trim()) return;
+  const key = 'custom_' + Date.now();
+  if(!sub.cats) sub.cats = [];
+  sub.cats.push({ key: key, label: label.trim(), custom: true });
+  collapsedSections[memberId+':'+subSectionKey] = false;
+  renderVault();
+  showToast('✅ Category "'+label.trim()+'" added.');
 }
 
 // ── Delete a category ─────────────────────────────────────────
