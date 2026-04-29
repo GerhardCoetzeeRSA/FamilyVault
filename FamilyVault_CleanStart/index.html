@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FamilyVault — Clean Start</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --navy:      #0F2044;
+  --navy2:     #1A3060;
+  --navy3:     #243d72;
+  --gold:      #C9A84C;
+  --gold2:     #e8c96d;
+  --cream:     #F8F5EF;
+  --cream2:    #F0EDE6;
+  --surface:   #FFFFFF;
+  --border:    #DDD8CE;
+  --text:      #1A1A1A;
+  --mid:       #4A4A4A;
+  --light:     #8A8A8A;
+  --danger:    #C0392B;
+  --success:   #27AE60;
+  --purple:    #6C3483;
+  --sidebar-w: 260px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── LOGIN SCREEN ─────────────────────────────────── */
+#login-screen{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;
+  background:linear-gradient(145deg,var(--navy) 0%,var(--navy2) 60%,#1a2a4a 100%);
+  position:relative;overflow:hidden;
+}
+#login-screen::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 70% 20%,rgba(201,168,76,0.12) 0%,transparent 60%),
+             radial-gradient(ellipse at 20% 80%,rgba(201,168,76,0.07) 0%,transparent 50%);
+}
+.login-logo{text-align:center;margin-bottom:36px;position:relative;z-index:1;}
+.login-logo .icon{font-size:52px;margin-bottom:12px;display:block;filter:drop-shadow(0 4px 12px rgba(201,168,76,0.4));}
+.login-logo h1{font-family:'Playfair Display',serif;color:var(--gold);font-size:38px;font-weight:700;letter-spacing:1px;}
+.login-logo p{color:rgba(255,255,255,0.5);font-size:14px;margin-top:6px;font-weight:300;}
+.login-card{
+  background:rgba(255,255,255,0.97);border-radius:12px;padding:36px 40px;
+  width:100%;max-width:420px;position:relative;z-index:1;
+  box-shadow:0 24px 64px rgba(0,0,0,0.3);
+  border-top:3px solid var(--gold);
+}
+.login-card h2{font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:6px;}
+.login-card p{color:var(--light);font-size:13px;margin-bottom:24px;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--mid);margin-bottom:6px;}
+.form-group input,.form-group select{
+  width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:7px;
+  font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);
+  background:#FAFAF8;transition:border-color 0.2s;outline:none;
+}
+.form-group input:focus,.form-group select:focus{border-color:var(--gold);}
+.demo-hint{
+  background:#FEF9EE;border:1px solid var(--gold);border-radius:7px;
+  padding:10px 14px;margin-bottom:20px;font-size:12px;color:#7a5c00;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.demo-hint::before{content:'💡';flex-shrink:0;}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  border:none;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;
+  transition:opacity 0.15s,transform 0.1s;
+}
+.btn:hover{opacity:0.88;transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn-primary{background:var(--navy);color:#fff;padding:12px 22px;font-size:15px;width:100%;}
+.btn-sm{padding:5px 13px;font-size:12px;}
+.btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--border);padding:6px 14px;font-size:13px;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-gold{background:var(--gold);color:var(--navy);}
+.login-switch{text-align:center;margin-top:18px;font-size:13px;color:var(--light);}
+.login-switch a{color:var(--navy);cursor:pointer;font-weight:600;text-decoration:underline;}
+
+/* ── MAIN APP ─────────────────────────────────────── */
+#app{display:none;flex-direction:column;height:100vh;}
+
+/* NAV */
+nav{
+  background:var(--navy);height:62px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;flex-shrink:0;
+  box-shadow:0 2px 12px rgba(0,0,0,0.25);
+}
+.nav-left{display:flex;align-items:center;gap:14px;}
+.nav-brand{font-family:'Playfair Display',serif;color:var(--gold);font-size:22px;font-weight:700;letter-spacing:0.5px;}
+.nav-family{color:rgba(255,255,255,0.4);font-size:13px;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.nav-user{color:rgba(255,255,255,0.7);font-size:13px;}
+.demo-badge{
+  background:rgba(201,168,76,0.2);border:1px solid var(--gold);
+  color:var(--gold);font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1px;padding:3px 8px;border-radius:99px;
+}
+.gold-bar{height:3px;background:linear-gradient(90deg,var(--gold),var(--gold2),var(--gold));flex-shrink:0;}
+
+/* BODY */
+.app-body{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+aside{
+  width:var(--sidebar-w);background:#162338;flex-shrink:0;
+  display:flex;flex-direction:column;overflow-y:auto;padding:20px 0;
+}
+.sidebar-label{
+  padding:0 18px 10px;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1.2px;color:rgba(255,255,255,0.3);border-bottom:1px solid rgba(255,255,255,0.07);
+  margin-bottom:6px;
+}
+.member-btn{
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:11px 18px;background:none;border:none;border-left:3px solid transparent;
+  cursor:pointer;width:100%;text-align:left;transition:background 0.15s;gap:2px;
+}
+.member-btn:hover{background:rgba(255,255,255,0.05);}
+.member-btn.active{background:rgba(201,168,76,0.13);border-left-color:var(--gold);}
+.member-btn .m-name{font-size:14px;font-weight:500;color:rgba(255,255,255,0.85);font-family:'DM Sans',sans-serif;}
+.member-btn.active .m-name{color:var(--gold);font-weight:600;}
+.member-btn .m-role{font-size:11px;color:rgba(255,255,255,0.35);}
+.sidebar-footer{padding:16px 18px;margin-top:auto;}
+.add-member-btn{
+  width:100%;padding:8px;background:rgba(201,168,76,0.1);
+  border:1.5px dashed var(--gold);border-radius:7px;color:var(--gold);
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.15s;
+}
+.add-member-btn:hover{background:rgba(201,168,76,0.18);}
+
+/* MAIN */
+main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
+
+/* VAULT HEADER */
+.vault-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;}
+.vault-title{font-family:'Playfair Display',serif;font-size:28px;color:var(--navy);margin-bottom:6px;}
+.vault-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.badge{
+  display:inline-block;padding:3px 10px;border-radius:99px;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#fff;
+}
+.badge-navy{background:var(--navy);}
+.badge-navy2{background:var(--navy2);}
+.badge-gray{background:#5D6D7E;}
+.badge-purple{background:var(--purple);}
+.badge-amber{background:#B7770D;}
+.vault-email{font-size:13px;color:var(--light);}
+
+/* PROGRESS SUMMARY */
+.progress-summary{text-align:right;font-size:13px;color:var(--mid);line-height:1.7;}
+.global-add-cat-btn{
+  margin-top:8px;background:none;border:1.5px solid var(--gold);
+  border-radius:6px;padding:5px 12px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
+  color:var(--navy);display:inline-flex;align-items:center;gap:5px;
+  transition:background 0.15s,color 0.15s;
+}
+.global-add-cat-btn:hover{background:var(--gold);color:var(--navy);}
+.progress-bar-wrap{height:6px;width:150px;background:var(--border);border-radius:3px;overflow:hidden;margin-left:auto;margin-top:6px;}
+.progress-bar-fill{height:100%;background:var(--gold);border-radius:3px;transition:width 0.5s;}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:22px;}
+.search-wrap input{
+  width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--border);
+  border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;
+  background:#FAFAF8;outline:none;transition:border-color 0.2s;
+}
+.search-wrap input:focus{border-color:var(--gold);}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;}
+.search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--light);}
+
+/* GRID NAV */
+
+/* SECTIONS */
+.section-block{margin-bottom:16px;scroll-margin-top:16px;}
+.section-heading{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--navy);padding:10px 14px;
+  background:linear-gradient(90deg,rgba(201,168,76,0.08),transparent);
+  border-left:3px solid var(--gold);border-radius:5px;
+  display:flex;align-items:center;gap:7px;cursor:pointer;
+  user-select:none;transition:background 0.15s;
+}
+.section-heading:hover{background:linear-gradient(90deg,rgba(201,168,76,0.16),transparent);}
+
+.section-heading .sec-chevron{margin-left:auto;font-size:10px;color:var(--light);transition:transform 0.2s;}
+.section-heading .sec-filecount{
+  margin-left:6px;font-size:10px;font-weight:600;color:var(--light);
+  font-style:italic;text-transform:none;letter-spacing:0;
+}
+.section-body{padding-top:10px;}
+.section-body.collapsed{display:none;}
+/* Sub-sections */
+.sub-section-block{
+  margin:8px 0 8px 12px;
+  border-left:2px solid #D5C9BB;
+}
+.sub-section-heading{
+  display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;
+  padding:7px 12px;background:#F5F2ED;border-radius:0 5px 5px 0;
+  font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1px;color:var(--navy);
+  transition:background 0.15s;
+}
+.sub-section-heading:hover{background:#EDE9E1;}
+.sub-section-heading .sec-chevron{margin-left:auto;}
+/* Add Section button */
+.add-sub-section-btn{
+  display:flex;align-items:center;gap:6px;
+  background:none;border:1.5px dashed #C8B89A;border-radius:6px;
+  padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:12px;color:var(--light);width:100%;
+  margin:4px 0 8px;transition:border-color 0.15s,color 0.15s;
+}
+.add-sub-section-btn:hover{border-color:var(--gold);color:var(--navy);}
+.add-cat-bar-btn{
+  background:none;border:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;
+  color:var(--navy);display:flex;align-items:center;gap:6px;padding:3px 0;
+  transition:color 0.15s;
+}
+.add-cat-bar-btn:hover{color:var(--gold);}
+/* Delete category button on slot */
+.slot-delete-cat{
+  background:none;border:1px solid #DDD;border-radius:5px;cursor:pointer;
+  color:var(--light);font-size:11px;font-weight:600;
+  padding:4px 8px;line-height:1;font-family:'DM Sans',sans-serif;
+  transition:background 0.15s,color 0.15s,border-color 0.15s;flex-shrink:0;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.slot-delete-cat:hover{background:#FDEDEC;color:var(--danger);border-color:#F1948A;}
+
+/* DOC SLOTS */
+.doc-slot{
+  border:1px solid var(--border);border-left:3px solid #CCC;border-radius:7px;
+  padding:11px 15px;background:#FAFAF8;margin-bottom:7px;
+  transition:background 0.15s,border-color 0.15s;
+}
+.doc-slot.has-file{background:#FFFEF9;border-left-color:var(--gold);}
+.doc-slot.drag-over{background:#FFFBF0;border-color:var(--gold);outline:2px dashed var(--gold);outline-offset:-2px;}
+.slot-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.slot-label{font-size:14px;color:var(--light);flex:1;}
+.slot-label.filled{color:var(--text);font-weight:600;}
+.slot-label .file-count{
+  margin-left:8px;font-size:11px;font-weight:700;color:var(--gold);
+  background:#FEF9EE;border:1px solid var(--gold);border-radius:99px;padding:1px 7px;
+}
+.slot-hint{font-size:11px;color:var(--light);font-style:italic;margin-top:4px;}
+.slot-actions{display:flex;gap:6px;flex-shrink:0;}
+
+/* FILE ROW */
+.file-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#F0EDE8;border-radius:5px;padding:6px 10px;margin-top:8px;flex-wrap:wrap;gap:8px;
+}
+.file-link{font-size:13px;font-weight:600;color:var(--navy);text-decoration:none;word-break:break-all;}
+.file-size{font-size:11px;color:var(--light);margin-left:6px;}
+.file-del{background:var(--danger);color:#fff;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:600;}
+
+/* PROGRESS BAR UPLOAD */
+.upload-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;}
+.upload-bar-fill{height:100%;background:var(--gold);border-radius:2px;transition:width 0.2s;}
+
+/* READONLY NOTICE */
+.readonly-notice{
+  background:#EBF4FB;border:1px solid #AED6F1;color:#1A5276;
+  border-radius:7px;padding:10px 14px;font-size:13px;margin-bottom:18px;
+  display:flex;align-items:center;gap:8px;
+}
+
+/* MODAL */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
+  z-index:1000;align-items:center;justify-content:center;padding:16px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:#fff;border-radius:11px;width:100%;max-width:460px;
+  box-shadow:0 16px 48px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;
+}
+.modal-header{
+  background:var(--navy);color:#fff;padding:18px 24px;
+  border-radius:11px 11px 0 0;display:flex;align-items:center;justify-content:space-between;
+}
+.modal-header h3{font-family:'Playfair Display',serif;font-size:18px;}
+.modal-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;}
+.modal-body{padding:24px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:28px;right:28px;background:var(--navy);color:#fff;
+  padding:13px 20px;border-radius:8px;font-size:14px;font-weight:500;
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:2000;
+  transform:translateY(80px);opacity:0;transition:transform 0.3s,opacity 0.3s;
+  display:flex;align-items:center;gap:8px;border-left:4px solid var(--gold);
+}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ALERT */
+.alert{border-radius:7px;padding:10px 14px;font-size:13px;margin-bottom:14px;}
+.alert-danger{background:#FDEDEC;border:1px solid #F1948A;color:#922B21;}
+
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Quarterly reminder banner */
+.reminder-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:500;
+  background:linear-gradient(90deg,var(--navy),var(--navy2));
+  color:#fff;padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.2);
+  border-top:3px solid var(--gold);
+}
+.reminder-banner p{margin:0;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;}
+.reminder-banner strong{color:var(--gold);}
+.reminder-dismiss{
+  background:var(--gold);color:var(--navy);border:none;border-radius:6px;
+  padding:8px 16px;font-family:'DM Sans',sans-serif;font-weight:700;
+  font-size:13px;cursor:pointer;flex-shrink:0;white-space:nowrap;
+}
+.reminder-dismiss:hover{opacity:0.88;}
+/* ══════════════════════════════════════════════════
+   MOBILE & TABLET RESPONSIVE
+══════════════════════════════════════════════════ */
+
+/* Hamburger hidden on desktop */
+.hamburger-btn { display: none; }
+
+/* Sidebar overlay — hidden by default */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 199;
+}
+
+/* Tablet (769px – 1024px) */
+@media (max-width: 1024px) {
+  .hamburger-btn { display: flex !important; }
+  .nav-family { display: none; }
+  aside {
+    position: fixed !important;
+    top: 65px; left: 0; bottom: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+  }
+  aside.open { transform: translateX(0) !important; }
+  .sidebar-overlay.open { display: block !important; }
+  main { padding: 24px 20px !important; }
+}
+
+/* Mobile (≤ 768px) */
+@media (max-width: 768px) {
+  .nav-user { display: none; }
+  .demo-badge { display: none; }
+  aside { width: 82vw !important; max-width: 300px; }
+  main { padding: 16px 12px !important; }
+
+  /* Vault header stacks */
+  .vault-header { flex-direction: column !important; }
+  .progress-summary { text-align: left !important; }
+  .progress-bar-wrap { margin-left: 0 !important; }
+
+  /* Grid nav — 2 columns */
+
+  /* Doc slot buttons stack */
+  .slot-actions { flex-wrap: wrap; }
+
+  /* Login card padding */
+  .login-card { padding: 24px 20px !important; margin: 0 12px; }
+  .login-logo h1 { font-size: 30px !important; }
+}
+
+/* Small phones (≤ 400px) */
+@media (max-width: 400px) {
+  nav { padding: 0 14px !important; }
+  .nav-brand { font-size: 18px !important; }
+  main { padding: 12px 10px !important; }
+}
+
+/* Notes slot styling */
+.notes-slot {
+  background: #F5F2ED !important;
+  border-left-color: #B5A898 !important;
+  border-color: #D5C9BB !important;
+  margin-left: 8px !important;
+  margin-bottom: 12px !important;
+  padding: 7px 14px !important;
+}
+.notes-slot.has-file { border-left-color: #8B7355 !important; }
+.notes-label {
+  font-size: 12px !important;
+  font-style: italic;
+  color: var(--light) !important;
+}
+.notes-label.filled {
+  font-style: normal !important;
+  color: var(--text) !important;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════ LOGIN ══ -->
+<div id="login-screen">
+  <div class="login-logo">
+    <span class="icon">🏛️</span>
+    <h1>FamilyVault</h1>
+    <p>Secure family family estate document management</p>
+  </div>
+
+  <div class="login-card">
+    <h2>Sign In</h2>
+    <p>Welcome back. Please sign in to continue.</p>
+
+    <div class="demo-hint">
+      Clean Start version — all sections are ready, no pre-loaded categories. Add only what you need.
+    </div>
+
+    <div class="form-group">
+      <label>Sign in as</label>
+      <select id="demo-user-select">
+        <option value="hoh">Pieter van der Berg — Head of Household</option>
+        <option value="executor">Adv. S. Engelbrecht — Executor</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" onclick="doLogin()">🔐 Sign In to Demo</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ APP ══ -->
+<div id="app">
+  <nav>
+    <div class="nav-left">
+      <button class="hamburger-btn" onclick="toggleSidebar()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:0 6px 0 0;display:none;align-items:center;">☰</button>
+      <span style="font-size:22px;">🏛️</span>
+      <span class="nav-brand">FamilyVault</span>
+      <span class="nav-family">· Van der Berg Family</span>
+      <span class="demo-badge" style="background:rgba(39,174,96,0.2);border-color:#27AE60;color:#27AE60;">Clean Start</span>
+    </div>
+    <div class="nav-right">
+      <span class="nav-user" id="nav-username"></span>
+      <button class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);font-size:13px;" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+  <div class="gold-bar"></div>
+
+  <!-- Quarterly reminder banner (shown to HoH only) -->
+  <div class="reminder-banner" id="reminder-banner" style="display:none;">
+    <p>📋 <strong>Quarterly Document Reminder</strong> — It's been more than 3 months since your last upload.
+    Please review your vault and upload any missing or updated documents.</p>
+    <button class="reminder-dismiss" onclick="dismissReminder()">Got it ✓</button>
+  </div>
+
+  <div class="app-body">
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+    <aside id="main-sidebar">
+      <div class="sidebar-label">Family Members</div>
+      <div id="member-list"></div>
+      <div class="sidebar-footer" id="sidebar-footer"></div>
+    </aside>
+
+    <main id="vault-main"></main>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ ADD MEMBER MODAL ══ -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Family Member</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-error" class="alert alert-danger" style="display:none;"></div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input id="m-name" type="text" placeholder="e.g. Anri van der Berg"/>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="m-role">
+          <option>Spouse</option>
+          <option>Child</option>
+          <option>Dependant</option>
+          <option>Executor</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input id="m-email" type="email" placeholder="member@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>Temporary Password</label>
+        <input id="m-pass" type="password" placeholder="Minimum 6 characters"/>
+      </div>
+      <p style="font-size:12px;color:var(--light);">The new member will use these credentials to sign in.</p>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" style="width:auto;" onclick="submitAddMember()">Add Member</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DEMO DATA
+// ══════════════════════════════════════════════════════════
+const SECTIONS = [
+  { key:'identity',    icon:'🪪',  label:'Identity & Personal',          cats:[] },
+  { key:'financial',   icon:'💰',  label:'Financial',                    cats:[] },
+  { key:'property',    icon:'🏠',  label:'Property & Assets',            cats:[] },
+  { key:'legal',       icon:'⚖️',  label:'Legal & Estate',               cats:[] },
+  { key:'business',    icon:'🏢',  label:'Business',                     cats:[] },
+  { key:'shareholding',icon:'📈',  label:'Shareholding',                 cats:[] },
+  { key:'children',    icon:'👨‍👩‍👧', label:'Children',                    cats:[] },
+  { key:'education',   icon:'🎓',  label:'Education',                    cats:[] },
+  { key:'medical',     icon:'🏥',  label:'Medical',                      cats:[] },
+  { key:'other',       icon:'📂',  label:'Other Documents',              cats:[] },
+  { key:'dep_recurring',icon:'🔄', label:'Dependant Recurring Accounts', cats:[] },
+];
+
+const ALL_CATS = SECTIONS.flatMap(s => s.cats);
+
+// Pre-filled documents for Pieter (HoH)
+const PIETER_DOCS = {};
+
+// Members
+let MEMBERS = [
+  {id:'hoh', name:'Pieter van der Berg', role:'Head of Household', email:'pieter@vandenberg.co.za', badge:'badge-navy', docs: JSON.parse(JSON.stringify(PIETER_DOCS))},
+  {id:'executor', name:'Adv. S. Engelbrecht', role:'Executor', email:'s.engelbrecht@lawchambers.co.za', badge:'badge-purple', docs: {}},
+  {id:'dependant', name:'Mev. A. van der Berg', role:'Dependant', email:'alma@vandenberg.co.za', badge:'badge-amber', docs: {}},,
+  {id:'child', name:'Lana van der Berg', role:'Child', email:'lana@vandenberg.co.za', badge:'badge-gray', docs: {}},
+];
+
+let currentUser = null;
+let activeMemberId = 'hoh';
+let searchQuery = '';
+let uploadingSlots = {};
+let notesStore = {};       // key: memberId:catKey → { text, open, saved }
+let noteSavingSlots = {};  // key: memberId:catKey → bool
+let collapsedSections = {}; // key: memberId:sectionKey → bool (false = open)
+let customCategories = {};  // key: memberId:sectionKey → [{key, label}]
+let deletedCategories = {}; // key: memberId → Set of category keys
+let customSections = {};    // key: memberId:parentSectionKey → [{key, label, icon, cats:[]}]
+let noteTexts = {};         // key: memberId:catKey → saved text
+let noteEditing = {};       // key: memberId:catKey → bool
+
+// ══════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════
+// Simulated last upload date — 4 months ago (triggers reminder in demo)
+const LAST_UPLOAD_DATE = new Date(); // Clean start — no reminder needed yet
+
+function doLogin(){
+  const sel = document.getElementById('demo-user-select').value;
+  currentUser = MEMBERS.find(m => m.id === sel);
+  activeMemberId = sel === 'executor' ? 'hoh' : sel;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('nav-username').textContent = currentUser.name;
+  renderSidebar();
+  renderVault();
+  const mainEl = document.getElementById('vault-main');
+  if(mainEl) mainEl.closest('main').scrollTo({ top: 0, behavior: 'instant' });
+  // Show quarterly reminder for Head of Household if > 90 days since last upload
+  if(currentUser.role === 'Head of Household'){
+    const daysSince = Math.floor((Date.now() - LAST_UPLOAD_DATE.getTime()) / (1000*60*60*24));
+    if(daysSince >= 90){
+      setTimeout(function(){ document.getElementById('reminder-banner').style.display='flex'; }, 800);
+    }
+  }
+}
+
+function dismissReminder(){
+  document.getElementById('reminder-banner').style.display='none';
+  showToast('✅ Reminder dismissed. We\'ll remind you again in 3 months.');
+}
+
+
+function doLogout(){
+  currentUser = null;
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('demo-user-select').value = 'hoh';
+}
+
+// ══════════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════════
+function renderSidebar(){
+  const list = document.getElementById('member-list');
+  list.innerHTML = '';
+  // Executor is an external party — only show family members (non-executors) in sidebar
+  const sidebarMembers = MEMBERS.filter(m => m.role !== 'Executor');
+  sidebarMembers.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'member-btn' + (m.id === activeMemberId ? ' active' : '');
+    const isMe = m.id === currentUser.id;
+    btn.innerHTML = `
+      <span class="m-name">${m.name}${isMe ? ' <span style="font-size:10px;opacity:0.5">(me)</span>' : ''}</span>
+      <span class="m-role">${m.role}</span>`;
+    btn.onclick = () => {
+      activeMemberId = m.id;
+      searchQuery = '';
+      renderSidebar();
+      renderVault();
+      closeSidebar();
+      // Scroll active sidebar button into view
+      setTimeout(() => {
+        const activeBtn = document.querySelector('.member-btn.active');
+        if(activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+      // Scroll main to role-specific section
+      const roleSectionMap = {
+        'Head of Household': null,
+        'Spouse':            null,
+        'Child':             'sec-children',
+        'Dependant':         null,
+        'Executor':          null,
+        'Other':             null,
+      };
+      const targetSec = roleSectionMap[m.role];
+      setTimeout(() => {
+        if(targetSec) {
+          const secEl = document.getElementById(targetSec);
+          if(secEl) secEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          const mainEl = document.getElementById('vault-main');
+          if(mainEl) mainEl.closest('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 80);
+    };
+    list.appendChild(btn);
+  });
+
+  const footer = document.getElementById('sidebar-footer');
+  footer.innerHTML = '';
+  if(currentUser.role === 'Head of Household'){
+    footer.innerHTML = `<button class="add-member-btn" onclick="openModal()">+ Add Member</button>`;
+  }
+  if(currentUser.role === 'Executor'){
+    footer.innerHTML = `
+      <div style="background:rgba(108,52,131,0.15);border:1px solid rgba(108,52,131,0.4);border-radius:7px;padding:10px 12px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:rgba(255,255,255,0.4);margin-bottom:4px;">Your role</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);">👁️ Executor — read-only access to all family vaults</div>
+      </div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// VAULT
+// ══════════════════════════════════════════════════════════
+function getActiveMember(){ return MEMBERS.find(m => m.id === activeMemberId); }
+
+function canWrite(){
+  if(currentUser.role === 'Executor') return false;
+  if(currentUser.role === 'Head of Household') return true;
+  return currentUser.id === activeMemberId;
+}
+
+function countFilled(docs){
+  return ALL_CATS.filter(c => (docs[c.key]||[]).length > 0).length;
+}
+function countFiles(docs){
+  return Object.values(docs).reduce((s,a)=>s+a.length,0);
+}
+
+function renderVault(){
+  const member = getActiveMember();
+  const docs   = member.docs;
+  const write  = canWrite();
+  const filled = countFilled(docs);
+  const total  = ALL_CATS.length;
+  const files  = countFiles(docs);
+  const pct    = Math.round((filled/total)*100);
+
+  const q = searchQuery.trim().toLowerCase();
+
+  const CHILD_EXCLUDED_SECTIONS     = ['identity','financial','property','legal','business','shareholding','dep_recurring'];
+  const DEPENDANT_EXCLUDED_SECTIONS = ['children','property','business','education','shareholding'];
+  const DEPENDANT_ONLY_SECTIONS     = ['other','dep_recurring'];
+  const OWNER_ONLY_SECTIONS         = ['shareholding'];
+  const CHILD_EXCLUDED_CATS         = ['domestic','emp_contract','payslips'];
+  const DEPENDANT_EXCLUDED_CATS     = ['domestic','credit_report','vat','suretyship','loan_agree','bank_account','recurring'];
+  const isOwnerRole = ['Head of Household','Spouse'].includes(member.role);
+
+  const filteredSections = SECTIONS
+    .filter(s => {
+      if(member.role === 'Child'     && CHILD_EXCLUDED_SECTIONS.includes(s.key)) return false;
+      if(member.role === 'Dependant' && DEPENDANT_EXCLUDED_SECTIONS.includes(s.key)) return false;
+      if(DEPENDANT_ONLY_SECTIONS.includes(s.key) && member.role !== 'Dependant') return false;
+      if(OWNER_ONLY_SECTIONS.includes(s.key) && !isOwnerRole) return false;
+      return true;
+    })
+    .map(s=>({
+      ...s,
+      cats: s.cats.filter(c=>{
+        if(member.role === 'Child'     && CHILD_EXCLUDED_CATS.includes(c.key)) return false;
+        if(member.role === 'Dependant' && DEPENDANT_EXCLUDED_CATS.includes(c.key)) return false;
+        if(!q) return true;
+        if(c.label.toLowerCase().includes(q)) return true;
+        return (docs[c.key]||[]).some(f=>f.name.toLowerCase().includes(q));
+      })
+    })).filter(s=>s.cats.length>0);
+
+  let html = `
+    <div class="vault-header">
+      <div>
+        <div class="vault-title">${member.name}</div>
+        <div class="vault-meta">
+          <span class="badge ${member.badge}">${member.role}</span>
+          <span class="vault-email">${member.email}</span>
+        </div>
+      </div>
+      <div class="progress-summary">
+        <div><strong style="color:var(--navy)">${files}</strong> file${files!==1?'s':''} stored</div>
+        <div><strong style="color:var(--navy)">${filled}</strong> of <strong>${total}</strong> categories filled</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        ${write ? '<button class="global-add-cat-btn" onclick="promptAddCategoryGlobal(\'' + member.id + '\')">️ Add category</button>' : ''}
+      </div>
+    </div>
+
+    ${SECTIONS.find(function(s){ return (customCategories[member.id+':'+s.key]||[]).length > 0; }) ? '' :
+      `<div style="background:#EBF4FB;border:1px solid #AED6F1;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-family:sans-serif;font-size:13px;color:#1A5276;">
+        <strong>👋 Getting started:</strong> All sections are ready below. Click <strong>＋ Add category</strong> above to start adding document categories, or expand any section and click <strong>＋ Add section</strong> to create a custom sub-grouping.
+      </div>`
+    }
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search categories or file names…" value="${q}"
+        oninput="searchQuery=this.value;renderVault()"/>
+      ${q?`<button class="search-clear" onclick="searchQuery='';renderVault()">×</button>`:''}
+    </div>`;
+
+  if(!write){
+    html += `<div class="readonly-notice">👁️ You are viewing this vault as <strong>Executor</strong>. You can download documents but cannot upload or delete.</div>`;
+  }
+
+
+  if(q && filteredSections.length===0){
+    html += `<div class="readonly-notice" style="background:#FEF9EE;border-color:var(--gold);color:#7a5c00;">No categories or files match "<strong>${q}</strong>".</div>`;
+  }
+
+  if(q && filteredSections.length>0){
+    const rCount = filteredSections.reduce((s,sec)=>s+sec.cats.length,0);
+    html += `<p style="font-size:13px;color:var(--mid);margin-bottom:16px;">Showing ${rCount} result${rCount!==1?'s':''} for "<strong>${q}</strong>"</p>`;
+  }
+
+  // ── Sections (collapsible, with custom + deleted categories) ──
+  const delSet = deletedCategories[member.id] || new Set();
+
+  filteredSections.forEach(s=>{
+    // Merge built-in cats (minus deleted) with custom cats for this member+section
+    const builtIn = s.cats.filter(c => !delSet.has(c.key));
+    const custom  = (customCategories[member.id+':'+s.key] || []);
+    const allCats = [...builtIn, ...custom];
+
+    // Count total files across all cats in this section
+    const secFileCount = allCats.reduce((sum, c) => sum + (docs[c.key]||[]).length, 0);
+    const isCollapsed = collapsedSections[member.id+':'+s.key] !== false; // default collapsed
+
+    var secLabel = s.key === 'children' ? member.name.toUpperCase() : s.label;
+    var fileCountBadge = secFileCount > 0 ? '<span class="sec-filecount">'+secFileCount+' file'+(secFileCount!==1?'s':'')+'</span>' : '';
+    var chevRot = isCollapsed ? '0deg' : '-180deg';
+    var bodyClass = isCollapsed ? 'section-body collapsed' : 'section-body';
+    html += '<div class="section-block" id="sec-'+s.key+'">'
+         +  '<div class="section-heading" onclick="toggleSection(\''+member.id+'\',\''+s.key+'\')">'  
+         +  '<span>'+s.icon+'</span>'
+         +  '<span>'+secLabel+'</span>'
+         +  fileCountBadge
+         +  '<span class="sec-chevron" id="chev-'+member.id+'-'+s.key+'" style="transform:rotate('+chevRot+')">▼</span>'
+         +  '</div>'
+         +  '<div class="'+bodyClass+'" id="secbody-'+member.id+'-'+s.key+'">';
+
+
+    allCats.forEach(c=>{
+      const isCustom = !!c.custom;
+      const catDocs = docs[c.key]||[];
+      const hasDocs = catDocs.length>0;
+      const isUploading = uploadingSlots[member.id+':'+c.key];
+      const noteKey = c.key+'_notes';
+      const noteDocs = docs[noteKey]||[];
+      const noteHasDocs = noteDocs.length>0;
+      const noteUploading = uploadingSlots[member.id+':'+noteKey];
+      html += `
+        <div class="doc-slot ${hasDocs?'has-file':''}" id="slot-${member.id}-${c.key}"
+          ondragover="handleDragOver(event,'${member.id}','${c.key}')"
+          ondragleave="handleDragLeave(event,'${member.id}','${c.key}')"
+          ondrop="handleDrop(event,'${member.id}','${c.key}')">
+          <div class="slot-row">
+            <div class="slot-label ${hasDocs?'filled':''}">
+              ${c.label}
+              ${hasDocs?`<span class="file-count">${catDocs.length} file${catDocs.length>1?'s':''}</span>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              ${write?`
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                  📁 Browse
+                  <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onchange="handleFileSelect(event,'${member.id}','${c.key}')"/>
+                </label>
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;" title="Photograph document">
+                  📷 Scan
+                  <input type="file" style="display:none" accept="image/*" capture="environment"
+                    onchange="handleFileSelect(event,'${member.id}','${c.key}')"/>
+                </label>
+                <button class="slot-delete-cat" title="Delete this category"
+                  onclick="deleteCategory('${member.id}','${s.key}','${c.key}',${isCustom})">🗑️ Delete</button>
+              `:''}
+            </div>
+          </div>
+          ${!hasDocs&&write&&!isUploading?`<div class="slot-hint">or drag &amp; drop a file here</div>`:''}
+          ${isUploading?`
+            <div class="upload-bar"><div class="upload-bar-fill" id="bar-${member.id}-${c.key}" style="width:0%"></div></div>
+            <div style="font-size:12px;color:var(--mid);margin-top:4px;" id="bar-txt-${member.id}-${c.key}">Uploading…</div>`:''}
+          ${catDocs.map(f=>`
+            <div class="file-row">
+              <div style="flex:1;min-width:0;">
+                <span style="font-family:sans-serif;font-size:13px;font-weight:600;color:var(--navy);word-break:break-all;">${fileIcon(f.name)} ${f.name}</span>
+                <span class="file-size">${fmtSize(f.size)}</span>
+              </div>
+              <div style="display:flex;gap:5px;flex-shrink:0;align-items:center;">
+                <a href="${f.url||'#'}" download="${f.name}" target="_blank"
+                  style="background:var(--navy);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:600;font-family:sans-serif;text-decoration:none;cursor:pointer;">
+                  ⬇ Download
+                </a>
+                ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${c.key}','${f.id}')">✕</button>`:''}
+              </div>
+            </div>`).join('')}
+        </div>`;
+
+      // Notes panel
+      const savedNoteText = noteTexts[member.id+':'+c.key] || '';
+      const noteItems = (savedNoteText.trim()?1:0) + noteDocs.length;
+      html += `
+        <div class="note-panel" id="note-${member.id}-${c.key}">
+          <div class="note-header" onclick="toggleNotePanel('${member.id}','${c.key}')">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span>📝</span>
+              <span class="note-header-label ${noteItems>0?'has-content':''}">Notes</span>
+              ${noteItems>0?`<span class="file-count" style="background:#FEF3E2;color:#B5935A;border-color:#E8C96D;">${noteItems} item${noteItems!==1?'s':''}</span>`:''}
+            </div>
+            <span class="note-chevron" id="chev-note-${member.id}-${c.key}">▼</span>
+          </div>
+          <div class="note-body" id="notebody-${member.id}-${c.key}" style="display:none;">
+            <div class="note-text-area">
+              ${savedNoteText.trim() && !isNoteEditing(member.id,c.key) ? `
+                <div class="note-saved-text" id="notetext-${member.id}-${c.key}">${escHtml(savedNoteText)}</div>
+                ${write?`<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="editNote('${member.id}','${c.key}')">✏️ Edit</button>
+                  <button class="btn btn-ghost btn-sm" onclick="deleteNoteText('${member.id}','${c.key}')">🗑️</button>
+                </div>`:''}
+              ` : write ? `
+                <textarea id="textarea-${member.id}-${c.key}" class="note-textarea" placeholder="Type your notes here…">${escHtml(savedNoteText)}</textarea>
+                <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="cancelNoteEdit('${member.id}','${c.key}')">Cancel</button>
+                  <button class="btn btn-sm" style="background:var(--navy);color:#fff;" onclick="saveNoteText('${member.id}','${c.key}')">Save Note</button>
+                </div>
+              ` : '<p style="font-size:12px;color:var(--light);font-style:italic;margin:8px 0;">No notes added.</p>'}
+            </div>
+            ${noteDocs.length>0?`
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:8px;">
+                ${noteDocs.map(f=>`
+                  <div class="file-row">
+                    <div style="flex:1;min-width:0;">
+                      <span style="font-family:sans-serif;font-size:12px;font-weight:600;color:var(--navy);word-break:break-all;">${fileIcon(f.name)} ${f.name}</span>
+                      <span class="file-size">${fmtSize(f.size)}</span>
+                    </div>
+                    <div style="display:flex;gap:5px;flex-shrink:0;">
+                      <a href="${f.url||'#'}" download="${f.name}" target="_blank"
+                        style="background:var(--navy);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;font-family:sans-serif;text-decoration:none;">
+                        ⬇ Download
+                      </a>
+                      ${write?`<button class="file-del" onclick="deleteFile('${member.id}','${noteKey}','${f.id}')">✕</button>`:''}
+                    </div>
+                  </div>`).join('')}
+              </div>`:''}
+            ${write?`
+              <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;">
+                  📎 Attach file
+                  <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onchange="handleFileSelect(event,'${member.id}','${noteKey}')"/>
+                </label>
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;">
+                  📷 Scan
+                  <input type="file" style="display:none" accept="image/*" capture="environment"
+                    onchange="handleFileSelect(event,'${member.id}','${noteKey}')"/>
+                </label>
+              </div>`:''}
+          </div>
+        </div>`;
+    });
+
+    // Custom sub-sections under this section
+    const subSections = customSections[member.id+':'+s.key] || [];
+    subSections.forEach(function(sub){
+      const subCollapsed = collapsedSections[member.id+':'+sub.key] !== false;
+      const subFileCount = (sub.cats||[]).reduce(function(sum,c){ return sum + (docs[c.key]||[]).length; }, 0);
+      html += `<div class="sub-section-block" id="sec-${sub.key}">
+        <div class="sub-section-heading" onclick="toggleSection('${member.id}','${sub.key}')">
+          <span>${sub.icon||'📁'}</span>
+          <span>${sub.label}</span>
+          ${subFileCount > 0 ? `<span class="sec-filecount">${subFileCount} file${subFileCount!==1?'s':''}</span>` : ''}
+          <span class="sec-chevron" id="chev-${member.id}-${sub.key}" style="transform:rotate(${subCollapsed?'0deg':'-180deg'})">▼</span>
+        </div>
+        <div class="section-body ${subCollapsed?'collapsed':''}" id="secbody-${member.id}-${sub.key}">`;
+
+      (sub.cats||[]).forEach(function(c){
+        const catDocs = docs[c.key]||[];
+        const hasDocs = catDocs.length>0;
+        html += `
+          <div class="doc-slot ${hasDocs?'has-file':''}" id="slot-${member.id}-${c.key}"
+            ondragover="handleDragOver(event,'${member.id}','${c.key}')"
+            ondragleave="handleDragLeave(event,'${member.id}','${c.key}')"
+            ondrop="handleDrop(event,'${member.id}','${c.key}')">
+            <div class="slot-row">
+              <div class="slot-label ${hasDocs?'filled':''}">
+                ${c.label}
+                ${hasDocs?`<span class="file-count">${catDocs.length} file${catDocs.length>1?'s':''}</span>`:''}
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;">
+                ${write?`
+                  <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                    📁 Browse
+                    <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onchange="handleFileSelect(event,'${member.id}','${c.key}')"/>
+                  </label>
+                  <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+                    📷 Scan
+                    <input type="file" style="display:none" accept="image/*" capture="environment"
+                      onchange="handleFileSelect(event,'${member.id}','${c.key}')"/>
+                  </label>
+                  <button class="slot-delete-cat" onclick="deleteCategory('${member.id}','${sub.key}','${c.key}',true)">🗑️ Delete</button>
+                `:''}
+              </div>
+            </div>
+            ${!hasDocs&&write?`<div class="slot-hint">or drag &amp; drop a file here</div>`:''}
+          </div>`;
+      });
+
+      if(write){
+        html += `<button class="add-cat-bar-btn" style="margin:6px 0 8px 4px;font-style:italic;font-size:12px;color:var(--light);"
+          onclick="promptAddCatToSubSection('${member.id}','${s.key}','${sub.key}')">＋ Add category to this section</button>`;
+      }
+
+      html += `</div></div>`;
+    });
+
+    // "Add section" button at bottom of each section
+    if(write){
+      html += `<button class="add-sub-section-btn" onclick="promptAddSubSection('${member.id}','${s.key}')">＋ Add section</button>`;
+    }
+
+    html += `</div></div>`;
+  });
+
+  document.getElementById('vault-main').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════
+// FILE OPERATIONS (simulated)
+// ══════════════════════════════════════════════════════════
+function handleFileSelect(e, memberId, catKey){
+  const file = e.target.files?.[0];
+  if(!file) return;
+  if(file.size > 20*1024*1024){ showToast('❌ File exceeds 20 MB limit.'); return; }
+  simulateUpload(memberId, catKey, file);
+}
+
+function handleDragOver(e, memberId, catKey){
+  e.preventDefault();e.stopPropagation();
+  const slot = document.getElementById(`slot-${memberId}-${catKey}`);
+  if(slot) slot.classList.add('drag-over');
+}
+function handleDragLeave(e, memberId, catKey){
+  e.preventDefault();e.stopPropagation();
+  const slot = document.getElementById(`slot-${memberId}-${catKey}`);
+  if(slot) slot.classList.remove('drag-over');
+}
+function handleDrop(e, memberId, catKey){
+  e.preventDefault();e.stopPropagation();
+  const slot = document.getElementById(`slot-${memberId}-${catKey}`);
+  if(slot) slot.classList.remove('drag-over');
+  if(!canWrite()) return;
+  const file = e.dataTransfer.files?.[0];
+  if(file) simulateUpload(memberId, catKey, file);
+}
+
+function simulateUpload(memberId, catKey, file){
+  uploadingSlots[memberId+':'+catKey] = true;
+  renderVault();
+  let pct = 0;
+  const bar  = document.getElementById(`bar-${memberId}-${catKey}`);
+  const txt  = document.getElementById(`bar-txt-${memberId}-${catKey}`);
+  const iv = setInterval(()=>{
+    pct += Math.random()*18+8;
+    if(pct>=100){ pct=100; clearInterval(iv);
+      delete uploadingSlots[memberId+':'+catKey];
+      const member = MEMBERS.find(m=>m.id===memberId);
+      if(!member.docs[catKey]) member.docs[catKey]=[];
+      member.docs[catKey].push({id:'u'+Date.now(),name:file.name,size:file.size,icon:'📄'});
+      renderVault();
+      showToast('✅ '+file.name+' uploaded successfully.');
+    } else {
+      if(bar){bar.style.width=pct+'%';}
+      if(txt){txt.textContent='Uploading '+Math.round(pct)+'%';}
+    }
+  },180);
+}
+
+function deleteFile(memberId, catKey, fileId){
+  if(!confirm('Delete this file? This cannot be undone.')) return;
+  const member = MEMBERS.find(m=>m.id===memberId);
+  member.docs[catKey] = (member.docs[catKey]||[]).filter(f=>f.id!==fileId);
+  renderVault();
+  showToast('🗑️ File deleted.');
+}
+
+// ══════════════════════════════════════════════════════════
+// ADD MEMBER MODAL
+// ══════════════════════════════════════════════════════════
+function openModal(){
+  document.getElementById('add-modal').classList.add('open');
+  document.getElementById('modal-error').style.display='none';
+  document.getElementById('m-name').value='';
+  document.getElementById('m-email').value='';
+  document.getElementById('m-pass').value='';
+}
+function closeModal(){ document.getElementById('add-modal').classList.remove('open'); }
+function submitAddMember(){
+  const name  = document.getElementById('m-name').value.trim();
+  const role  = document.getElementById('m-role').value;
+  const email = document.getElementById('m-email').value.trim();
+  const pass  = document.getElementById('m-pass').value;
+  const err   = document.getElementById('modal-error');
+  if(!name||!email||!pass){ err.style.display='block';err.textContent='All fields are required.';return; }
+  if(pass.length<6){ err.style.display='block';err.textContent='Password must be at least 6 characters.';return; }
+  const badges={'Spouse':'badge-navy2','Child':'badge-gray','Dependant':'badge-amber','Executor':'badge-purple','Other':'badge-gray'};
+  MEMBERS.push({id:'m'+Date.now(),name,role,email,badge:badges[role]||'badge-gray',docs:{}});
+  closeModal();
+  renderSidebar();
+  renderVault();
+  showToast('✅ '+name+' added successfully.');
+}
+
+// ══════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════
+function fileIcon(name){
+  if(!name) return '📄';
+  const ext = name.split('.').pop().toLowerCase();
+  if(ext==='pdf') return '📕';
+  if(['jpg','jpeg','png','heic','webp'].includes(ext)) return '🖼️';
+  if(['doc','docx'].includes(ext)) return '📝';
+  return '📄';
+}
+
+function fmtSize(b){
+  if(!b) return '';
+  if(b<1024) return b+' B';
+  if(b<1024*1024) return Math.round(b/1024)+' KB';
+  return (b/1024/1024).toFixed(1)+' MB';
+}
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+document.getElementById('add-modal').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
+});
+
+// (note functions consolidated above)
+
+// ── Note helper functions ────────────────────────────────────
+function isNoteEditing(memberId, catKey){ return !!noteEditing[memberId+':'+catKey]; }
+
+function editNote(memberId, catKey){
+  noteEditing[memberId+':'+catKey] = true;
+  renderVault();
+  setTimeout(()=>{ const ta=document.getElementById('textarea-'+memberId+'-'+catKey); if(ta) ta.focus(); },50);
+}
+
+function cancelNoteEdit(memberId, catKey){
+  noteEditing[memberId+':'+catKey] = false;
+  renderVault();
+}
+
+function saveNoteText(memberId, catKey){
+  const ta = document.getElementById('textarea-'+memberId+'-'+catKey);
+  if(ta){ noteTexts[memberId+':'+catKey] = ta.value; }
+  noteEditing[memberId+':'+catKey] = false;
+  renderVault();
+  showToast('✅ Note saved.');
+}
+
+function deleteNoteText(memberId, catKey){
+  if(!confirm('Delete this note?')) return;
+  noteTexts[memberId+':'+catKey] = '';
+  noteEditing[memberId+':'+catKey] = false;
+  renderVault();
+  showToast('🗑️ Note deleted.');
+}
+
+function escHtml(str){
+  if(!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Section collapse/expand ──────────────────────────────────
+function toggleSection(memberId, sectionKey){
+  const k = memberId+':'+sectionKey;
+  // default is collapsed (true), so first click opens it
+  collapsedSections[k] = collapsedSections[k] === false ? true : false;
+  const body  = document.getElementById('secbody-'+memberId+'-'+sectionKey);
+  const chev  = document.getElementById('chev-'+memberId+'-'+sectionKey);
+  if(body) body.classList.toggle('collapsed', collapsedSections[k] !== false);
+  if(chev) chev.style.transform = collapsedSections[k] !== false ? 'rotate(0deg)' : 'rotate(-180deg)';
+}
+
+// ── Add a custom sub-section under a parent section ─────────
+function promptAddSubSection(memberId, parentSectionKey){
+  const parentSection = SECTIONS.find(function(s){ return s.key === parentSectionKey; });
+  const parentLabel = parentSection ? parentSection.label : parentSectionKey;
+  const label = prompt('Enter a name for the new section under "' + parentLabel + '":');
+  if(!label || !label.trim()) return;
+  const key = 'subsec_' + Date.now();
+  const pk = memberId+':'+parentSectionKey;
+  if(!customSections[pk]) customSections[pk] = [];
+  customSections[pk].push({ key: key, label: label.trim(), icon: '📁', cats: [] });
+  // Open parent section and new sub-section
+  collapsedSections[memberId+':'+parentSectionKey] = false;
+  collapsedSections[memberId+':'+key] = false;
+  renderVault();
+  showToast('✅ Section "'+label.trim()+'" added.');
+}
+
+// ── Add a category to a custom sub-section ────────────────────
+function promptAddCatToSubSection(memberId, parentSectionKey, subSectionKey){
+  const pk = memberId+':'+parentSectionKey;
+  const subSections = customSections[pk] || [];
+  const sub = subSections.find(function(s){ return s.key === subSectionKey; });
+  if(!sub) return;
+  const label = prompt('Enter a name for the new category under "'+sub.label+'":');
+  if(!label || !label.trim()) return;
+  const key = 'custom_' + Date.now();
+  if(!sub.cats) sub.cats = [];
+  sub.cats.push({ key: key, label: label.trim(), custom: true });
+  collapsedSections[memberId+':'+subSectionKey] = false;
+  renderVault();
+  showToast('✅ Category "'+label.trim()+'" added.');
+}
+
+// ── Delete a category ─────────────────────────────────────────
+function deleteCategory(memberId, sectionKey, catKey, isCustom){
+  if(!confirm('Remove this category? Any uploaded files will remain in storage but the category will no longer appear.')) return;
+  if(isCustom){
+    // Remove from custom categories
+    const k = memberId+':'+sectionKey;
+    customCategories[k] = (customCategories[k]||[]).filter(c=>c.key!==catKey);
+  } else {
+    // Add to deleted set for this member
+    if(!deletedCategories[memberId]) deletedCategories[memberId] = new Set();
+    deletedCategories[memberId].add(catKey);
+  }
+  renderVault();
+  showToast('🗑️ Category removed.');
+}
+
+// ── Add a custom category ─────────────────────────────────────
+function promptAddCategoryGlobal(memberId){
+  // Build list of visible sections for this member
+  const member = getActiveMember();
+  const visibleSections = SECTIONS.filter(s=>{
+    if(member.role==='Child' && ['identity','financial','property','legal','business','shareholding','dep_recurring'].includes(s.key)) return false;
+    if(member.role==='Dependant' && ['children','property','business','education','shareholding'].includes(s.key)) return false;
+    if(['other','dep_recurring'].includes(s.key) && member.role!=='Dependant') return false;
+    if(s.key==='shareholding' && !['Head of Household','Spouse'].includes(member.role)) return false;
+    return true;
+  });
+
+  // Build a numbered list for the prompt
+  const sectionList = visibleSections.map(function(s,i){ return (i+1)+'. '+s.label; }).join('\n');
+  const choice = prompt('Which section do you want to add a category to?\n\n'+sectionList+'\n\nEnter the number:');
+  if(!choice) return;
+  const idx = parseInt(choice) - 1;
+  if(isNaN(idx) || idx < 0 || idx >= visibleSections.length){
+    alert('Invalid selection. Please enter a number from the list.');
+    return;
+  }
+  const sectionKey = visibleSections[idx].key;
+  const label = prompt('Enter a name for the new category in "'+visibleSections[idx].label+'":');
+  if(!label || !label.trim()) return;
+  promptAddCategory(memberId, sectionKey, label.trim());
+}
+
+function promptAddCategory(memberId, sectionKey, existingLabel){
+  const label = existingLabel || prompt('Enter a name for the new category:');
+  if(!label || !label.trim()) return;
+  const key = 'custom_' + Date.now();
+  const k = memberId+':'+sectionKey;
+  if(!customCategories[k]) customCategories[k] = [];
+  customCategories[k].push({ key, label: label.trim(), custom: true });
+  collapsedSections[memberId+':'+sectionKey] = false; // false = open
+  renderVault();
+  showToast('✅ Category "'+label.trim()+'" added.');
+}
+
+// ── Member section navigation (from grid cards) ─────────────
+function goToMemberSection(memberId, sectionId){
+  activeMemberId = memberId;
+  renderSidebar();
+  renderVault();
+  closeSidebar();
+  setTimeout(()=>{
+    if(sectionId){
+      const el = document.getElementById(sectionId);
+      if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+    } else {
+      const mainEl = document.getElementById('vault-main');
+      if(mainEl) mainEl.closest('main').scrollTo({top:0,behavior:'smooth'});
+    }
+    // Scroll sidebar to show active member
+    const activeBtn = document.querySelector('.member-btn.active');
+    if(activeBtn) activeBtn.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }, 80);
+}
+
+// ── Note panel toggle ────────────────────────────────────────
+function toggleNotePanel(memberId, catKey){
+  const body = document.getElementById('notebody-'+memberId+'-'+catKey);
+  const chev = document.getElementById('chev-note-'+memberId+'-'+catKey);
+  if(!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if(chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(-180deg)';
+}
+
+// ── Sidebar toggle (mobile/tablet) ───────────────────────────
+function toggleSidebar(){
+  const sidebar = document.getElementById('main-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen  = sidebar.classList.contains('open');
+  if(isOpen){ closeSidebar(); } else { openSidebar(); }
+}
+function openSidebar(){
+  document.getElementById('main-sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar(){
+  document.getElementById('main-sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+</script>
+</body>
+</html>
