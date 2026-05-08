@@ -422,6 +422,64 @@ main{flex:1;overflow-y:auto;padding:32px 40px;max-width:960px;}
   font-style: normal !important;
   color: var(--text) !important;
 }
+
+/* ── Financial Ledger Tables ──────────────────────────────── */
+.ledger-section{margin-bottom:24px;}
+.ledger-table-wrap{overflow-x:auto;margin-top:8px;}
+.ledger-table{
+  width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:13px;
+  background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,0.06);
+}
+.ledger-table th{
+  background:var(--navy);color:#fff;padding:9px 12px;text-align:left;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;
+}
+.ledger-table th.num{text-align:right;}
+.ledger-table td{padding:8px 12px;border-bottom:1px solid #F0EDE8;vertical-align:middle;}
+.ledger-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.ledger-table tr:last-child td{border-bottom:none;}
+.ledger-table tr:nth-child(even) td{background:#FAFAF8;}
+.ledger-table tr:hover td{background:#FEF9EE;}
+.ledger-total-row td{
+  background:var(--navy)!important;color:#fff;font-weight:700;
+  font-size:13px;border-top:2px solid var(--gold)!important;
+}
+.ledger-total-row td.num{color:var(--gold);font-size:14px;}
+.ledger-input{
+  width:100%;border:none;background:transparent;font-family:'DM Sans',sans-serif;
+  font-size:13px;color:var(--text);outline:none;padding:0;
+}
+.ledger-input:focus{background:#FFFEF0;border-radius:3px;padding:2px 4px;}
+.ledger-input.num{text-align:right;}
+.ledger-add-row{
+  display:flex;align-items:center;gap:8px;margin-top:8px;
+}
+.ledger-add-btn{
+  background:none;border:1.5px dashed #C8B89A;border-radius:6px;
+  padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:12px;color:var(--light);transition:border-color 0.15s,color 0.15s;
+}
+.ledger-add-btn:hover{border-color:var(--gold);color:var(--navy);}
+.ledger-del-btn{
+  background:none;border:none;cursor:pointer;color:#CCC;font-size:14px;
+  padding:0 4px;transition:color 0.15s;line-height:1;
+}
+.ledger-del-btn:hover{color:var(--danger);}
+.ledger-header{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-left:3px solid var(--gold);border-radius:5px;cursor:pointer;
+  background:linear-gradient(90deg,rgba(201,168,76,0.08),transparent);
+  transition:background 0.15s;user-select:none;margin-bottom:0;
+}
+.ledger-header:hover{background:linear-gradient(90deg,rgba(201,168,76,0.16),transparent);}
+.ledger-header-label{
+  font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.2px;color:var(--navy);flex:1;
+}
+.ledger-header-total{
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--gold);
+}
+
 </style>
 </head>
 <body>
@@ -580,6 +638,9 @@ const SECTIONS = [
   { key:'medical',     icon:'🏥',  label:'Medical',                      cats:[] },
   { key:'other',       icon:'📂',  label:'Other Documents',              cats:[] },
   { key:'dep_recurring',icon:'🔄', label:'Dependant Recurring Accounts', cats:[] },
+  { key:'assets',      icon:'📊', label:'Assets',      cats:[] },
+  { key:'liabilities', icon:'📉', label:'Liabilities', cats:[] },
+  { key:'expenses',    icon:'💸', label:'Expenses',    cats:[] },
 ];
 
 const ALL_CATS = SECTIONS.flatMap(s => s.cats);
@@ -853,6 +914,10 @@ function renderVault(){
          +  '<span class="sec-chevron" id="chev-'+member.id+'-'+s.key+'" style="transform:rotate('+chevRot+')">▼</span>'
          +  '</div>'
          +  '<div class="'+bodyClass+'" id="secbody-'+member.id+'-'+s.key+'">';
+    // Render spreadsheet directly for Assets, Liabilities, Expenses
+    if(['assets','liabilities','expenses'].includes(s.key)){
+      html += '<div id="ledger-body-'+member.id+'-'+s.key+'" class="ledger-direct"></div>';
+    }
 
 
     allCats.forEach(c=>{
@@ -1045,6 +1110,10 @@ function renderVault(){
   }
 
   document.getElementById('vault-main').innerHTML = html;
+  // Render ledger tables into their containers
+  ['assets','liabilities','expenses'].forEach(function(type){
+    renderLedger(member.id, type);
+  });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1164,6 +1233,183 @@ function showToast(msg){
 document.getElementById('add-modal').addEventListener('click',function(e){
   if(e.target===this) closeModal();
 });
+
+// ══════════════════════════════════════════════════════════
+// FINANCIAL LEDGER (Assets, Liabilities, Expenses)
+// ══════════════════════════════════════════════════════════
+
+// ledgerData[memberId][type] = [{id, description, amount}]
+// type: 'assets' | 'liabilities' | 'expenses'
+var ledgerData = {};
+var ledgerCollapsed = {}; // memberId:type → bool
+
+function getLedger(memberId, type){
+  if(!ledgerData[memberId]) ledgerData[memberId] = {};
+  if(!ledgerData[memberId][type]) ledgerData[memberId][type] = [];
+  return ledgerData[memberId][type];
+}
+
+function ledgerTotal(memberId, type){
+  return getLedger(memberId, type).reduce(function(s,r){ return s + (parseFloat(r.amount)||0); }, 0);
+}
+
+function fmtRand(n){
+  if(!n && n!==0) return 'R 0.00';
+  return 'R ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function addLedgerRow(memberId, type){
+  var rows = getLedger(memberId, type);
+  rows.push({ id: 'lr_'+Date.now(), description: '', amount: '' });
+  renderLedger(memberId, type);
+}
+
+function deleteLedgerRow(memberId, type, rowId){
+  if(!confirm('Delete this row?')) return;
+  ledgerData[memberId][type] = getLedger(memberId, type).filter(function(r){ return r.id !== rowId; });
+  renderLedger(memberId, type);
+  updateLedgerTotal(memberId, type);
+}
+
+function updateLedgerCell(memberId, type, rowId, field, value){
+  var row = getLedger(memberId, type).find(function(r){ return r.id === rowId; });
+  if(row){ row[field] = value; }
+  updateLedgerTotal(memberId, type);
+}
+
+function updateLedgerTotal(memberId, type){
+  var total = ledgerTotal(memberId, type);
+  var el = document.getElementById('ledger-total-'+memberId+'-'+type);
+  if(el) el.textContent = fmtRand(total);
+  // Update header total
+  var hEl = document.getElementById('ledger-htotal-'+memberId+'-'+type);
+  if(hEl) hEl.textContent = total > 0 ? fmtRand(total) : '';
+}
+
+function toggleLedger(memberId, type){
+  var key = memberId+':'+type;
+  ledgerCollapsed[key] = ledgerCollapsed[key] !== false ? false : true;
+  // false = open, true/undefined = collapsed (same as sections)
+  // Actually: undefined=collapsed, false=open, true=collapsed (toggle)
+  if(ledgerCollapsed[key] === true) ledgerCollapsed[key] = true;
+  var body = document.getElementById('ledger-body-'+memberId+'-'+type);
+  var chev = document.getElementById('ledger-chev-'+memberId+'-'+type);
+  if(!body) return;
+  var isOpen = ledgerCollapsed[key] === false;
+  body.style.display = isOpen ? 'block' : 'none';
+  if(chev) chev.style.transform = isOpen ? 'rotate(-180deg)' : 'rotate(0deg)';
+}
+
+function renderLedger(memberId, type){
+  var container = document.getElementById('ledger-body-'+memberId+'-'+type);
+  if(!container) return;
+  var rows = getLedger(memberId, type);
+  var isWrite = canWrite();
+  var typeLabel = type === 'assets' ? 'Asset' : type === 'liabilities' ? 'Liability' : 'Expense';
+  var amtLabel  = type === 'expenses' ? 'Monthly (R)' : 'Amount (R)';
+  var cols = isWrite ? 3 : 2;
+
+  var total = ledgerTotal(memberId, type);
+  var html = '<div class="ledger-table-wrap">'
+    + '<table class="ledger-table">'
+    + '<thead><tr>'
+    + '<th>Description</th>'
+    + '<th class="num">' + amtLabel + '</th>'
+    + (isWrite ? '<th style="width:36px"></th>' : '')
+    + '</tr></thead>'
+    + '<tbody>';
+
+  if(rows.length === 0){
+    html += '<tr><td colspan="'+cols+'" style="color:var(--light);font-style:italic;text-align:center;padding:16px;">No items yet.'+(isWrite?' Click ＋ Add row below.':'')+'</td></tr>';
+  } else {
+    rows.forEach(function(row){
+      var rid = row.id;
+      html += '<tr>'
+        + '<td><input class="ledger-input" type="text" value="'+escHtml(row.description||'')+'" placeholder="e.g. Primary Residence" '
+        + 'data-mid="'+memberId+'" data-type="'+type+'" data-rid="'+rid+'" data-field="description" '
+        + 'onchange="handleLedgerChange(this)" '
+        + (isWrite?'':'readonly') + '/></td>'
+        + '<td class="num"><input class="ledger-input num" type="number" min="0" step="0.01" value="'+(row.amount||'')+'" placeholder="0.00" '
+        + 'data-mid="'+memberId+'" data-type="'+type+'" data-rid="'+rid+'" data-field="amount" '
+        + 'onchange="handleLedgerChange(this)" oninput="handleLedgerChange(this)" '
+        + (isWrite?'':'readonly') + '/></td>'
+        + (isWrite ? '<td><button class="ledger-del-btn" data-mid="'+memberId+'" data-type="'+type+'" data-rid="'+rid+'" onclick="handleLedgerDelete(this)">✕</button></td>' : '')
+        + '</tr>';
+    });
+  }
+
+  html += '</tbody>'
+    + '<tfoot><tr class="ledger-total-row">'
+    + '<td><strong>TOTAL</strong></td>'
+    + '<td class="num" id="ledger-total-'+memberId+'-'+type+'">' + fmtRand(total) + '</td>'
+    + (isWrite ? '<td></td>' : '')
+    + '</tr></tfoot>'
+    + '</table></div>';
+
+  if(isWrite){
+    html += '<div class="ledger-add-row">'
+      + '<button class="ledger-add-btn" data-mid="'+memberId+'" data-type="'+type+'" onclick="handleLedgerAdd(this)">'
+      + '\ufe0f Add '+typeLabel+' row'
+      + '</button></div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function buildLedgerSection(memberId, type, icon, label){
+  var isOpen = ledgerCollapsed[memberId+':'+type] === false;
+  var total  = ledgerTotal(memberId, type);
+  var divId  = 'ledger-wrap-'+memberId+'-'+type;
+  var hdrId  = 'ledger-body-'+memberId+'-'+type;
+  var chevId = 'ledger-chev-'+memberId+'-'+type;
+  var totId  = 'ledger-htotal-'+memberId+'-'+type;
+  var rot    = isOpen ? '-180deg' : '0deg';
+  var disp   = isOpen ? 'block' : 'none';
+  var totStr = total > 0 ? fmtRand(total) : '';
+  return '<div class="ledger-section" id="'+divId+'">'
+    + '<div class="ledger-header" data-mid="'+memberId+'" data-type="'+type+'" onclick="handleLedgerToggle(this)">'
+    + '<span>'+icon+'</span>'
+    + '<span class="ledger-header-label">'+label+'</span>'
+    + '<span class="ledger-header-total" id="'+totId+'">'+totStr+'</span>'
+    + '<span class="sec-chevron" id="'+chevId+'" style="transform:rotate('+rot+')">▼</span>'
+    + '</div>'
+    + '<div id="'+hdrId+'" style="display:'+disp+';">'
+    + '</div>'
+    + '</div>';
+}
+
+function handleLedgerToggle(el){
+  var mid  = el.dataset.mid;
+  var type = el.dataset.type;
+  toggleLedger(mid, type);
+}
+
+function initLedgers(memberId){
+  ['assets','liabilities','expenses'].forEach(function(type){
+    renderLedger(memberId, type);
+  });
+}
+
+function handleLedgerChange(el){
+  var mid   = el.dataset.mid;
+  var type  = el.dataset.type;
+  var rid   = el.dataset.rid;
+  var field = el.dataset.field;
+  updateLedgerCell(mid, type, rid, field, el.value);
+  if(field === 'amount') updateLedgerTotal(mid, type);
+}
+function handleLedgerDelete(el){
+  var mid  = el.dataset.mid;
+  var type = el.dataset.type;
+  var rid  = el.dataset.rid;
+  deleteLedgerRow(mid, type, rid);
+}
+function handleLedgerAdd(el){
+  var mid  = el.dataset.mid;
+  var type = el.dataset.type;
+  addLedgerRow(mid, type);
+}
+
 document.getElementById('input-modal').addEventListener('click',function(e){
   if(e.target===this) closeInputModal();
 });
@@ -1403,12 +1649,15 @@ function escHtml(str){
 // ── Section collapse/expand ──────────────────────────────────
 function toggleSection(memberId, sectionKey){
   const k = memberId+':'+sectionKey;
-  // default is collapsed (true), so first click opens it
   collapsedSections[k] = collapsedSections[k] === false ? true : false;
   const body  = document.getElementById('secbody-'+memberId+'-'+sectionKey);
   const chev  = document.getElementById('chev-'+memberId+'-'+sectionKey);
   if(body) body.classList.toggle('collapsed', collapsedSections[k] !== false);
   if(chev) chev.style.transform = collapsedSections[k] !== false ? 'rotate(0deg)' : 'rotate(-180deg)';
+  // If opening a ledger section, render the spreadsheet
+  if(['assets','liabilities','expenses'].includes(sectionKey) && collapsedSections[k] === false){
+    renderLedger(memberId, sectionKey);
+  }
 }
 
 
